@@ -42,36 +42,38 @@ _init:
 	movw	%ax, %es
 
 	# Say "hello, world!"
-	call	enterMode13h
+	#call	enterMode13h
+	call clear_screen
 
 forever:
 	jmp	forever
 
 
-#clear_screen:
-#	pushw	%ax
-#	movb	$0, %ah		# function number
-#	movb	$3, %al 	# video mode
-#	int	$0x10
-#	popw	%ax
-#	retw
+clear_screen:
+	pushw	%ax
+	movb	$0, %ah		# function number
+	movb	$3, %al 	# video mode
+	int	$0x10
+	popw	%ax
+	retw
 
 
-enterMode13h:
-    #mov ax, 0A000h ; The offset to video memory
-    movb        $0x13, %al
-    movb        $0x0, %ah
-    int         $0x10
-    mov         $0x0A000, %ax
-    mov         %ax, %es
-    mov         $14464, %ax
-loop2:
-    mov         %ax, %di
-    mov         $0x4, %dl
-    mov         %dl, %es:(%di)
-    inc         %ax
-    jmp         loop2
+#enterMode13h:
+#    #mov ax, 0A000h ; The offset to video memory
+#    movb        $0x13, %al
+#    movb        $0x0, %ah
+#    int         $0x10
+#    mov         $0x0A000, %ax
+#    mov         %ax, %es
+#    mov         $14464, %ax
+#loop2:
+#    mov         %ax, %di
+#    mov         $0x4, %dl
+#    mov         %dl, %es:(%di)
+#    inc         %ax
+#    jmp         loop2
 
 
 _magic:
-	.fill 512, 2, 0x55aa
+	.align 2
+	.fill 512, 2, 0xaa55

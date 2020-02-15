@@ -41,12 +41,27 @@ _init:
 	movw	%ax, %ds
 	movw	%ax, %es
 
-	# Say "hello, world!"
-	#call	enterMode13h
-	call clear_screen
+	# Set up A20 gate
+	in	$0x92, %al
+	or	$2, %al
+	out	%al, $0x92
+
+	call	clear_screen
+	call	load_os
 
 forever:
 	jmp	forever
+
+
+load_os:
+	pushw	%bp
+	movw	%sp, %bp
+	pushw	$load_init_string
+	call	print_string
+	
+	movw	%bp, %sp
+	popw	%bp
+	retw
 
 
 clear_screen:
@@ -58,7 +73,34 @@ clear_screen:
 	retw
 
 
-#enterMode13h:
+print_string:
+	pushw	%bp
+	movw	%sp, %bp
+	pushw	%ax
+	pushw	%bx
+	pushw	%si
+
+	movw	4(%bp), %si
+
+print_str_while:
+	lodsb	# load character to write into al, and increment si
+	cmpb	$0, %al
+	jz	print_str_end_while
+	movb	$0x0e, %ah	# function number
+	movb	$0x00, %bh	# active page number
+	movb	$0x02, %bl	# foreground color
+	int	$0x10
+	jmp	print_str_while
+
+print_str_end_while:
+	popw	%si
+	popw	%bx
+	popw	%ax
+	movw	%bp,%sp
+	popw	%bp
+	retw	$2
+	
+#red_screen_of_death:
 #    #mov ax, 0A000h ; The offset to video memory
 #    movb        $0x13, %al
 #    movb        $0x0, %ah
@@ -72,6 +114,14 @@ clear_screen:
 #    mov         %dl, %es:(%di)
 #    inc         %ax
 #    jmp         loop2
+
+
+# Some user friendly text
+load_init_string:
+	.asciz	"Loading"
+
+load_done_string:
+	.asciz	"\n\rDone"
 
 
 # This is a hack to write the magic 55AA signature in the 

@@ -54,11 +54,26 @@ forever:
 
 
 load_os:
+	# Save registers
 	pushw	%bp
 	movw	%sp, %bp
+	subw	$10, %sp
+	pushw	%ax
+	pushw	%bx
+	pushw	%cx
+	pushw	%dx
+	pushw	%es
+
 	pushw	$load_init_string
 	call	print_string
+	jmp	forever
 	
+	# Restore registers
+	popw	%es
+	popw	%dx
+	popw	%cx
+	popw	%bx
+	popw	%ax
 	movw	%bp, %sp
 	popw	%bp
 	retw
@@ -96,29 +111,29 @@ print_str_end_while:
 	popw	%si
 	popw	%bx
 	popw	%ax
-	movw	%bp,%sp
+	movw	%bp, %sp
 	popw	%bp
 	retw	$2
 	
-#red_screen_of_death:
-#    #mov ax, 0A000h ; The offset to video memory
-#    movb        $0x13, %al
-#    movb        $0x0, %ah
-#    int         $0x10
-#    mov         $0x0A000, %ax
-#    mov         %ax, %es
-#    mov         $14464, %ax
-#loop2:
-#    mov         %ax, %di
-#    mov         $0x4, %dl
-#    mov         %dl, %es:(%di)
-#    inc         %ax
-#    jmp         loop2
+red_screen_of_death:
+    #mov ax, 0A000h ; The offset to video memory
+    movb        $0x13, %al
+    movb        $0x0, %ah
+    int         $0x10
+    mov         $0x0A000, %ax
+    mov         %ax, %es
+    mov         $14464, %ax
+red_screen_of_death_forever:
+    mov         %ax, %di
+    mov         $0x4, %dl
+    mov         %dl, %es:(%di)
+    inc         %ax
+    jmp         red_screen_of_death_forever
 
 
 # Some user friendly text
 load_init_string:
-	.asciz	"Loading"
+	.asciz	"Loading\n\r"
 
 load_done_string:
 	.asciz	"\n\rDone"

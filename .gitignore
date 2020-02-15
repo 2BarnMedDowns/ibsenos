@@ -50,3 +50,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+bootloader.bin
+isodir/*
+ibsenos.iso

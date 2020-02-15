@@ -74,6 +74,4 @@ loop2:
 
 
 _magic:
-	.fill 438, 1, 0
-	.byte 0x55
-	.byte 0xaa
+	.fill 512, 2, 0x55aa

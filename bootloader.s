@@ -74,6 +74,10 @@ clear_screen:
 #    jmp         loop2
 
 
+# This is a hack to write the magic 55AA signature in the 
+# last two bytes of the boot sector.
 _magic:
-	.align 2
-	.fill 512, 2, 0xaa55
+	.align	2
+	.fill 	512, 2, 0xaa55
+_magic_end:
+	.word	0xaa55

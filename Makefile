@@ -1,20 +1,25 @@
+NAME := ibsenos
+
 CC := i686-elf-gcc
 LD := i686-elf-ld
 AS := i686-elf-as
 
 CFLAGS := -std=gnu99 -Wall -Wextra -nostdlib 
 
-.PHONY: all clean distclean
-all: bootloader.img
+OBJS := bootloader.o kernel.o
 
-bootloader.img: bootloader.o
+.PHONY: all clean distclean
+all: $(NAME).img
+
+$(NAME).img: $(OBJS)
 	$(LD) -T bootblock.ld -o $@ $^ --oformat=binary
 
 clean:
-	$(RM) bootloader.o bootloader.img
+	$(RM) $(OBJS)
+	$(RM) $(NAME).img 
 
 %.o: %.s
-	$(AS) -o $@ $<
+	$(AS) -c -o $@ $<
 
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<

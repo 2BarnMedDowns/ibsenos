@@ -8,7 +8,7 @@ CFLAGS := -std=gnu99 -Wall -Wextra -nostdlib
 all: bootloader.img
 
 bootloader.img: bootloader.o
-	$(LD) -o $@ $^ --oformat=binary
+	$(LD) -T bootblock.ld -o $@ $^ --oformat=binary
 
 clean:
 	$(RM) bootloader.o bootloader.img

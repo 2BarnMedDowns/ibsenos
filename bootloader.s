@@ -2,7 +2,61 @@
 .code16
 .globl _start
 
+.equ SEGMENT, 0x7c0
+.equ POINTER, 0x0000
+
+# Start by moving ourselves to new position.
 _start:
-	.fill 509,1,0
+	# Source DS:SI
+	movw	$SEGMENT, %ax
+	movw	%ax, %ds
+	movw	$POINTER, %si
+	
+	# Destination ES:DI
+	movw	$0x80, %ax
+	movw	%ax, %es
+	movw	$0, %di
+
+	# Number of bytes to move
+	movw	512, %cx
+
+	# Execute it
+	cld
+	rep		# Repeat cx number of times
+	movsb		# Copy data from source to destination
+
+	# Jump to next instruction in new position
+	ljmp	$SEGMENT,$POINTER + _init
+
+
+# Initialize stack and data segments.
+_init:
+	# Set up the stack
+	movw	$0x9000, %ax
+	movw	%ax, %ss
+	movw 	$0xfffe, %sp
+
+	# Set up the data segments
+	movw	$0x80, %ax
+	movw	%ax, %ds
+	movw	%ax, %es
+
+	# Say "hello, world!"
+	call	clear_screen
+
+forever:
+	jmp	forever
+
+
+clear_screen:
+	pushw	%ax
+	movb	$0, %ah		# function number
+	movb	$3, %al 	# video mode
+	int	$0x10
+	popw	%ax
+	retw
+
+_magic:
+	.fill 453, 1, 0
 	.byte 0x55
 	.byte 0xaa

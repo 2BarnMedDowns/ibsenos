@@ -1,32 +1,47 @@
 NAME := ibsenos
+BUILD_DIR := build
 
 CC := i686-elf-gcc
 LD := i686-elf-ld
 AS := i686-elf-as
 
-CFLAGS := -std=gnu99 -Wall -Wextra -nostdlib 
+KERNEL_ADDR=0x1000
 
-KOBJS := entry.o kernel.o removeme.o
+CFLAGS := -std=gnu99 -Wall -Wextra -nostdlib -DKERNEL_ADDR=$(KERNEL_ADDR)
+ASMFLAGS := --defsym KERNEL_ADDR=$(KERNEL_ADDR) -R
+
+KOBJS := $(addprefix $(BUILD_DIR)/,entry.o kernel.o removeme.o)
+
 
 .PHONY: all clean distclean 
 all: $(NAME).img
 
-$(NAME).img: bootblock.bin kernel.bin
+$(NAME).img: $(BUILD_DIR)/bootblock.bin $(BUILD_DIR)/kernel.bin
 	cat $^ > $@
 
-bootblock.bin: bootloader.o
+$(BUILD_DIR)/bootblock.bin: $(BUILD_DIR)/bootloader.o
 	$(LD) -T bootblock.ld -o $@ $^ --oformat=binary
 
-kernel.bin: $(KOBJS)
-	$(LD) -T kernel.ld -o $@ $^ --oformat=binary
+$(BUILD_DIR)/kernel.bin: $(KOBJS)
+	$(LD) -Ttext $(KERNEL_ADDR) -o $@ $^ --oformat=binary
 
 clean:
 	$(RM) $(KOBJS)
-	$(RM) bootloader.o
-	$(RM) $(NAME).img kernel.bin bootblock.bin
+	$(RM) $(BUILD_DIR)/bootloader.o
+	$(RM) $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/bootblock.bin
 
-%.o: %.s
-	$(AS) -c -o $@ $<
+distclean: clean
+	$(RM) $(NAME).img 
+	rmdir $(BUILD_DIR)
 
-%.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/bootloader.o: bootloader.s | $(BUILD_DIR)/kernel.bin
+	$(AS) $(ASMFLAGS) -c -o $@ $< --defsym KERNEL_SIZE=$(shell du -b $(BUILD_DIR)/kernel.bin | grep -oP "\d+") 
+
+$(BUILD_DIR)/%.o: %.s | $(BUILD_DIR)
+	$(AS) $(ASMFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR):
+	mkdir $(BUILD_DIR)

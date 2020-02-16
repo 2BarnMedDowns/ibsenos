@@ -45,36 +45,41 @@ _str_fail:      .asciz  "FAIL"
 # Initialize stack and data segments.
 # This is after we moved ourselves.
 _init:
-    # Set up the stack and base pointer
-    movw    $STACK_SEGM, %ax # Stack segment
-    movw    %ax, %ss
-    movw    $0xfffe, %sp     # Stack pointer
-    movw    %sp, %bp
-
     # We just jumped, so we need to update our view of 
     # the world by setting segment pointers
     movw    $SEGM, %ax
     movw    %ax, %es
     movw    %ax, %ds
 
-    # Set up A20 gate
-    in      $0x92, %al
-    or      $2, %al
-    out	    %al, $0x92
+    # Set up the stack and base pointer
+    movw    $STACK_SEGM, %ax # Stack segment
+    movw    %ax, %ss
+    movw    $0xfffe, %sp     # Stack pointer
+    movw    %sp, %bp
 
     # "Hello, world!"
     call    clear_screen
     pushw   $_str_welcome
     call    print_message
-    addw    $2, %sp
+    movw    %bp, %sp
 
-    pushw   $_str_loading
-    call    print_message
-    addw    $2, %sp
+    # Set up A20 gate
+    in      $0x92, %al
+    or      $2, %al
+    out	    %al, $0x92
 
-    call    print_dot
-    call    print_dot
-    call    print_dot
+    # Load OS image from disk
+    subw    $10, %sp    # Reserve space for variables
+    .equ    SECTOR,         -2
+    .equ    HEAD,           -4
+    .equ    TRACK,          -6
+    .equ    DESTINATION,    -8
+    .equ    NUM_SECTORS,    -10
+    movw    $2, SECTOR(%bp)
+    movw    $0, HEAD(%bp)
+    movw    $0, TRACK(%bp)
+    movw    $KERNEL_ADDR >> 4, DESTINATION(%bp)
+    movw    $(KERNEL_SIZE + 511) >> 9, NUM_SECTORS(%bp)
 
 forever:
     #cli

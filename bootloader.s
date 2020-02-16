@@ -1,4 +1,4 @@
-.text
+.section .text.bootentry
 .org 0
 .code16
 
@@ -36,6 +36,7 @@ _start:
 
 
 # Some strings for user friendly messages
+_str_welcome:	.asciz	"IbsenOS version 0.1\n\r"
 _str_loading: 	.asciz	"Loading"
 _str_done:	.asciz	"OK"
 _str_fail:	.asciz 	"FAIL"
@@ -61,17 +62,9 @@ _init:
 	or	$2, %al
 	out	%al, $0x92
 
-	movw	$_str_loading, %si
-
-print:
-	lodsb
-	cmpb 	$0, %al
-	jz	forever
-	movb	$0x0e, %ah
-	movb	$0x00, %bh
-	movb	$0x02, %bl
-	int	$0x10
-	jmp 	print
+	call	clear_screen
+	pushw	$_str_welcome
+	call	print_message
 
 forever:
 	jmp	forever

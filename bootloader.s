@@ -1,4 +1,4 @@
-.text
+.section .text.bootentry
 .code16
 .globl _start
 
@@ -17,13 +17,14 @@ _start:
 	movw	%ax, %es
 	movw	$0, %di
 
-	# Number of bytes to move
-	movw	512, %cx
-
-	# Execute it
+	# Execute it, Set direction flag forward for string instructions
 	cld
-	rep		# Repeat cx number of times
-	movsb		# Copy data from source to destination
+
+	call	clear_screen
+    pushw   $load_init_string
+    call    print_string
+	#rep		# Repeat cx number of times
+	#movsb		# Copy data from source to destination
 
 	# Jump to next instruction in new position
 	ljmp	$SEGMENT,$POINTER + _init
@@ -37,9 +38,9 @@ _init:
 	movw 	$0xfffe, %sp
 
 	# Set up the data segments
-	movw	$0x80, %ax
-	movw	%ax, %ds
-	movw	%ax, %es
+	#movw	$0x80, %ax
+	#movw	%ax, %ds
+	#movw	%ax, %es
 
 	# Set up A20 gate
 	in	$0x92, %al
@@ -47,6 +48,8 @@ _init:
 	out	%al, $0x92
 
 	call	clear_screen
+    pushw   $load_init_string
+    call    print_string
 	call	load_os
 
 forever:

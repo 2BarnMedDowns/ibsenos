@@ -23,7 +23,7 @@ kernel.bin: $(KOBJS)
 clean:
 	$(RM) $(KOBJS)
 	$(RM) bootloader.o
-	$(RM) $(NAME).img 
+	$(RM) $(NAME).img kernel.bin bootblock.bin
 
 %.o: %.s
 	$(AS) -c -o $@ $<

@@ -1,7 +1,7 @@
-extern void some_symbol(void);
+extern void some_symbol(const char*);
 
 void _start(void)
 {
     char test[] = "Hello";
-    while (1);
+    some_symbol(test);
 }

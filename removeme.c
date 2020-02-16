@@ -1,3 +1,4 @@
-void some_symbol(void)
+void some_symbol(const char* ptr)
 {
+    while (1);
 }

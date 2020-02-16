@@ -142,7 +142,6 @@ load_done_string:
 # This is a hack to write the magic 55AA signature in the 
 # last two bytes of the boot sector.
 _magic:
-	.align	2
-	.fill 	512, 2, 0xaa55
+    .space 510-(.-_start)
 _magic_end:
 	.word	0xaa55

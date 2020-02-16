@@ -13,25 +13,25 @@
 # Start by relocating ourselves to new position.
 .globl _start
 _start:
-# Source DS:SI
+    # Source DS:SI
     movw    $0x0000, %ax 
     movw    %ax, %ds     # Starting segment
     movw    $0x7c00, %si # Starting address
 
-# Destination ES:DI
+    # Destination ES:DI
     movw    $SEGM, %ax # Segment where we end up
     movw    %ax, %es
     movw    $ADDR, %di # Offset where we end up
 
-# Number of bytes to move
+    # Number of bytes to move
     movw    $512, %cx
 
-# Relocate!
+    # Relocate!
     cld     # Direction flag forward
     rep     # Repeat cx number of times
     movsb   # Move byte from DS:SI to ES:DI
 
-# Jump to next instruction in new position
+    # Jump to next instruction in new position
     ljmp    $SEGM, $ADDR + _init
 
 
@@ -45,14 +45,14 @@ _str_fail:      .asciz  "FAIL"
 # Initialize stack and data segments.
 # This is after we moved ourselves.
 _init:
-# Set up the stack and base pointer
+    # Set up the stack and base pointer
     movw    $STACK_SEGM, %ax # Stack segment
     movw    %ax, %ss
     movw    $0xfffe, %sp     # Stack pointer
     movw    %sp, %bp
 
-# We just jumped, so we need to update our view of 
-# the world by setting segment pointers
+    # We just jumped, so we need to update our view of 
+    # the world by setting segment pointers
     movw    $SEGM, %ax
     movw    %ax, %es
     movw    %ax, %ds
@@ -62,6 +62,7 @@ _init:
     or      $2, %al
     out	    %al, $0x92
 
+    # "Hello, world!"
     call    clear_screen
     pushw   $_str_welcome
     call    print_message
@@ -108,14 +109,14 @@ print_dot:
 
 # Print a message to screen
 print_message:
-# Store registers
+    # Store registers
     pushw   %bp
     movw    %sp, %bp
     pushw   %ax
     pushw   %bx
     pushw   %si
 
-# Extract argument and place in SI
+    # Extract argument and place in SI
     movw    4(%bp), %si
 
 _print_loop:

@@ -1,147 +1,140 @@
 .text
+.org 0
 .code16
+
+# Where we move ourselves in memory
+.equ SEGM, 0x0060
+.equ ADDR, 0x0000
+
+# Where do we want our stack?
+.equ STACK_SEGM, 0x0900
+
+# BIOS loads bootloader into 0000:7c00
+# Start by relocating ourselves to new position.
 .globl _start
-
-.equ SEGMENT, 0x7c0
-.equ POINTER, 0x0000
-
-# Start by moving ourselves to new position.
 _start:
 	# Source DS:SI
-	movw	$SEGMENT, %ax
-	movw	%ax, %ds
-	movw	$POINTER, %si
+	movw	$0x0000, %ax 
+	movw	%ax, %ds     # Starting segment
+	movw	$0x7c00, %si # Starting address
 	
 	# Destination ES:DI
-	movw	$0x80, %ax
+	movw	$SEGM, %ax # Segment where we end up
 	movw	%ax, %es
-	movw	$0, %di
+	movw	$ADDR, %di # Offset where we end up
 
 	# Number of bytes to move
-	movw	512, %cx
+	movw	$512, %cx
 
 	# Execute it
-	cld
-	rep		# Repeat cx number of times
-	movsb		# Copy data from source to destination
+	cld	# Direction flag forward
+	rep  	# Repeat cx number of times
+	movsb	# Move byte from DS:SI to ES:DI
 
 	# Jump to next instruction in new position
-	ljmp	$SEGMENT,$POINTER + _init
+	ljmp	$SEGM, $ADDR + _init
+
+
+# Some strings for user friendly messages
+_str_loading: 	.asciz	"Loading"
+_str_done:	.asciz	"OK"
+_str_fail:	.asciz 	"FAIL"
 
 
 # Initialize stack and data segments.
+# This is after we moved ourselves.
 _init:
-	# Set up the stack
-	movw	$0x9000, %ax
+	# Set up the stack and base pointer
+	movw	$STACK_SEGM, %ax # Stack segment
 	movw	%ax, %ss
-	movw 	$0xfffe, %sp
+	movw 	$0xfffe, %sp     # Stack pointer
+	movw	%sp, %bp
 
-	# Set up the data segments
-	movw	$0x80, %ax
-	movw	%ax, %ds
+	# We just jumped, so we need to update our view of 
+	# the world by setting segment pointers
+	movw	$SEGM, %ax
 	movw	%ax, %es
+	movw	%ax, %ds
 
 	# Set up A20 gate
 	in	$0x92, %al
 	or	$2, %al
 	out	%al, $0x92
 
-	call	clear_screen
-	call	load_os
+	movw	$_str_loading, %si
+
+print:
+	lodsb
+	cmpb 	$0, %al
+	jz	forever
+	movb	$0x0e, %ah
+	movb	$0x00, %bh
+	movb	$0x02, %bl
+	int	$0x10
+	jmp 	print
 
 forever:
 	jmp	forever
 
-
-load_os:
-	# Save registers
-	pushw	%bp
-	movw	%sp, %bp
-	subw	$10, %sp
-	pushw	%ax
-	pushw	%bx
-	pushw	%cx
-	pushw	%dx
-	pushw	%es
-
-	pushw	$load_init_string
-	call	print_string
-	jmp	forever
-	
-	# Restore registers
-	popw	%es
-	popw	%dx
-	popw	%cx
-	popw	%bx
-	popw	%ax
-	movw	%bp, %sp
-	popw	%bp
-	retw
-
-
+# Clear everything on the screen
 clear_screen:
 	pushw	%ax
-	movb	$0, %ah		# function number
-	movb	$3, %al 	# video mode
+	movb	$0, %ah	# Function number
+	movb	$3, %al # Video mode
 	int	$0x10
 	popw	%ax
-	retw
+	ret
 
 
-print_string:
+# Print loading dot
+print_dot:
+	pushw	%ax
+	pushw	%bx
+
+	movb	$'.', %al
+	movb	$0x0e, %ah # Function number
+	movb	$0x00, %bh # Active page number
+	movb	$0x02, %bl # Foreground color
+	int	$0x10
+
+	popw	%bx
+	popw	%ax
+	ret
+
+
+# Print a message to screen
+print_message:
+	# Store registers
 	pushw	%bp
 	movw	%sp, %bp
 	pushw	%ax
 	pushw	%bx
 	pushw	%si
-
+	
+	# Extract argument and place in SI
 	movw	4(%bp), %si
 
-print_str_while:
-	lodsb	# load character to write into al, and increment si
-	cmpb	$0, %al
-	jz	print_str_end_while
-	movb	$0x0e, %ah	# function number
-	movb	$0x00, %bh	# active page number
-	movb	$0x02, %bl	# foreground color
+_print_loop:
+	lodsb  # Load char from SI to AL, and incr SI
+	cmpb	$0, %al # End of string?
+	jz	_print_leave
+	movb	$0x0e, %ah # Function number
+	movb	$0x00, %bh # Active page number
+	movb	$0x02, %bl # Foreground color
 	int	$0x10
-	jmp	print_str_while
+	jmp 	_print_loop
 
-print_str_end_while:
+_print_leave:
 	popw	%si
-	popw	%bx
+	popw 	%bx
 	popw	%ax
 	movw	%bp, %sp
 	popw	%bp
-	retw	$2
+	ret
 	
-red_screen_of_death:
-    #mov ax, 0A000h ; The offset to video memory
-    movb        $0x13, %al
-    movb        $0x0, %ah
-    int         $0x10
-    mov         $0x0A000, %ax
-    mov         %ax, %es
-    mov         $14464, %ax
-red_screen_of_death_forever:
-    mov         %ax, %di
-    mov         $0x4, %dl
-    mov         %dl, %es:(%di)
-    inc         %ax
-    jmp         red_screen_of_death_forever
-
-
-# Some user friendly text
-load_init_string:
-	.asciz	"Loading\n\r"
-
-load_done_string:
-	.asciz	"\n\rDone"
-
 
 # This is a hack to write the magic 55AA signature in the 
 # last two bytes of the boot sector.
 _magic:
-    .space 510-(.-_start)
-_magic_end:
+	.space 510-(.-_start)
 	.word	0xaa55

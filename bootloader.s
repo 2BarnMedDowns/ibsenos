@@ -28,7 +28,7 @@ _start:
 
     # Relocate!
     cld     # Direction flag forward
-    rep     # Repeat cx number of times
+    rep     # Repeat CX number of times
     movsb   # Move byte from DS:SI to ES:DI
 
     # Jump to next instruction in new position
@@ -37,7 +37,7 @@ _start:
 
 # Some strings for user friendly messages
 _str_welcome:   .asciz  "IbsenOS version 0.1\n\r"
-_str_loading:   .asciz  "Loading"
+_str_loading:   .asciz  "Loading from diskette"
 _str_done:      .asciz  "OK"
 _str_fail:      .asciz  "FAIL"
 
@@ -97,15 +97,21 @@ print_dot:
     pushw   %bx
 
     movb    $'.', %al
-    movb    $0x0e, %ah # Function number
-    movb    $0x00, %bh # Active page number
-    movb    $0x02, %bl # Foreground color
-    int     $0x10
+    call    _print
 
     popw    %bx
     popw    %ax
     ret
 
+
+# Routine to print character
+# Clobbers AX and BX
+_print:
+    movb    $0x0e, %ah  # Function number
+    movb    $0x00, %bh  # Active page number
+    movb    $0x02, %bl  # Foreground color
+    int     $0x10
+    ret
 
 # Print a message to screen
 print_message:
@@ -123,10 +129,7 @@ _print_loop:
     lodsb  # Load char from SI to AL, and incr SI
     cmpb    $0, %al # End of string?
     jz      _print_leave
-    movb    $0x0e, %ah # Function number
-    movb    $0x00, %bh # Active page number
-    movb    $0x02, %bl # Foreground color
-    int     $0x10
+    call    _print
     jmp     _print_loop
 
 _print_leave:
@@ -137,9 +140,4 @@ _print_leave:
     popw    %bp
     ret
 
-
-# This is a hack to write the magic 55AA signature in the 
-# last two bytes of the boot sector.
-_magic:
-    .space 510-(.-_start)
-    .word	0xaa55
+_magic: .asciz "IbsenOS is made by Axel and Jonas"

@@ -6,16 +6,23 @@ AS := i686-elf-as
 
 CFLAGS := -std=gnu99 -Wall -Wextra -nostdlib 
 
-OBJS := bootloader.o kernel.o
+KOBJS := entry.o kernel.o removeme.o
 
-.PHONY: all clean distclean
+.PHONY: all clean distclean 
 all: $(NAME).img
 
-$(NAME).img: $(OBJS)
+$(NAME).img: bootblock.bin kernel.bin
+	cat $^ > $@
+
+bootblock.bin: bootloader.o
 	$(LD) -T bootblock.ld -o $@ $^ --oformat=binary
 
+kernel.bin: $(KOBJS)
+	$(LD) -T kernel.ld -o $@ $^ --oformat=binary
+
 clean:
-	$(RM) $(OBJS)
+	$(RM) $(KOBJS)
+	$(RM) bootloader.o
 	$(RM) $(NAME).img 
 
 %.o: %.s

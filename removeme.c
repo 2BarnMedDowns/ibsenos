@@ -15,3 +15,12 @@ void clear_screen(short* screen)
         screen[i] = (0x07 << 8) | string[i];
     }
 }
+
+short* print_uint(short* screen, unsigned int n)
+{
+    if (n >= 10) {
+        screen = print_uint(screen, n / 10);
+    }
+    *screen = (0x07 << 8) | ('0' + (n % 10));
+    return screen + 1;
+}

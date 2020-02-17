@@ -9,6 +9,12 @@
 # Where do we want our stack?
 .equ STACK_SEGM, 0x0900
 
+# Block size/sector size (usually 512)
+.equ SECTOR_SIZE, 512
+
+# Align size (in bytes) to sectors (2^9=512)
+.equ KERNEL_SECTORS, (KERNEL_SIZE + 511) >> 9
+
 # BIOS loads bootloader into 0000:7c00
 # Start by relocating ourselves to new position.
 .globl _start
@@ -24,7 +30,7 @@ _start:
     movw    $ADDR, %di # Offset where we end up
 
     # Number of bytes to move
-    movw    $512, %cx
+    movw    $SECTOR_SIZE, %cx
 
     # Relocate!
     cld     # Direction flag forward
@@ -81,8 +87,7 @@ _init:
     movw    $0, TRACK(%bp)
 
     movw    $KERNEL_ADDR >> 4, DESTINATION(%bp)
-    # Align size (in bytes) to sectors (2^9=512)
-    movw    $(KERNEL_SIZE + 511) >> 9, NUM_SECTORS(%bp)
+    movw    $KERNEL_SECTORS, NUM_SECTORS(%bp)
 
     pushw   $_str_loading
     call    print_message
@@ -125,7 +130,7 @@ _read_sector:
     cmpb    $0, %ah
     jne     _load_error
     incw    SECTOR(%bp)
-    addw    $512 >> 4, DESTINATION(%bp)
+    addw    $SECTOR_SIZE >> 4, DESTINATION(%bp)
     decw    NUM_SECTORS(%bp)
     jmp     _load_loop
 
@@ -188,8 +193,8 @@ new_world:
     movw    %ax, %ss
     movl    $KERNEL_STACK, %esp
 
-    # Push OS image size onto the stack
-    pushl    $(KERNEL_SIZE + 511) >> 9
+    # Push OS image size and start address onto the stack
+    pushl   $KERNEL_SECTORS
     
     # Jump to the kernel
     ljmp    $CODE_SELECT, $KERNEL_ADDR

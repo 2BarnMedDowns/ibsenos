@@ -37,7 +37,7 @@ distclean: clean
 	rmdir $(BUILD_DIR)
 
 $(BUILD_DIR)/bootloader.o: bootloader.s | $(BUILD_DIR)/kernel.bin
-	$(AS) $(ASMFLAGS) -c -o $@ $< --defsym KERNEL_SIZE=$(shell du -b $(BUILD_DIR)/kernel.bin | grep -oP "\d+") 
+	$(AS) $(ASMFLAGS) -c -o $@ $< --defsym KERNEL_SIZE=$(firstword $(shell du -b $(BUILD_DIR)/kernel.bin))
 
 $(BUILD_DIR)/%.s.o: %.s | $(BUILD_DIR)
 	$(AS) $(ASMFLAGS) -c -o $@ $<

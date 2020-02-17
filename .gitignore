@@ -56,6 +56,5 @@ dkms.conf
 
 # Binary images
 ibsenos.img
-bootblock.bin
-kernel.bin
+BOOTX64.EFI
 

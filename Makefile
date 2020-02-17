@@ -1,49 +1,47 @@
-NAME := ibsenos
-BUILD_DIR := build
+PROJECT := ibsenos
 
-CC := i686-elf-gcc
-LD := i686-elf-ld
-AS := i686-elf-as
+EFI_INCLUDE := /usr/include/efi
+EFI_LIBRARY := /usr/lib
+OVMF_PATH := /usr/share/OVMF/OVMF_CODE.fd 
 
-KERNEL_ADDR = 0x1000
-KERNEL_STACK = 0xa0000
+ARCH_TARGET := x86_64
+ARCH_HOSTED := w64
 
-CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -Wall -Wextra -nostdlib -DKERNEL_ADDR=$(KERNEL_ADDR)
-ASMFLAGS := --defsym KERNEL_ADDR=$(KERNEL_ADDR) --defsym KERNEL_STACK=$(KERNEL_STACK) -R
+CC := $(ARCH_TARGET)-$(ARCH_HOSTED)-mingw32-gcc
+LD := $(CC)
+AS := $(CC)
 
-KSRCS := entry.s kernel.c removeme.c
-KOBJS := $(KSRCS:%=$(BUILD_DIR)/%.o)
+WARNINGS = all extra shadow unused error-implicit-function-declaration
 
+WARNS := $(addprefix -W,$(WARNINGS))
+CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
+CFLAGS += -I$(EFI_INCLUDE) -I$(EFI_INCLUDE)/$(ARCH_TARGET) -I$(EFI_INCLUDE)/protocol
+LDFLAGS := -L$(EFI_LIBRARY) -lefi -lgnuefi -lgcc -e efi_main -Wl,-dll -shared -Wl,--subsystem,10 
 
-.PHONY: all clean distclean 
-all: $(NAME).img
-
-$(NAME).img: $(BUILD_DIR)/bootblock.bin $(BUILD_DIR)/kernel.bin
-	cat $^ > $@
-
-$(BUILD_DIR)/bootblock.bin: $(BUILD_DIR)/bootloader.o
-	$(LD) -Ttext 0x0 -e _start -o $@ $^ --oformat=binary
-
-$(BUILD_DIR)/kernel.bin: $(KOBJS)
-	$(LD) -Ttext $(KERNEL_ADDR) -o $@ $^ --oformat=binary
+.PHONY: $(PROJECT).img loader image all clean distclean qemu-graphic qemu-nographic
+all: $(PROJECT).img
 
 clean:
-	$(RM) $(KOBJS)
-	$(RM) $(BUILD_DIR)/bootloader.o
-	$(RM) $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/bootblock.bin
+	$(RM) loader.o
+	$(RM) $(PROJECT).img BOOTX64.EFI
 
-distclean: clean
-	$(RM) $(NAME).img 
-	rmdir $(BUILD_DIR)
+image: $(PROJECT).img
 
-$(BUILD_DIR)/bootloader.o: bootloader.s | $(BUILD_DIR)/kernel.bin
-	$(AS) $(ASMFLAGS) -c -o $@ $< --defsym KERNEL_SIZE=$(firstword $(shell du -b $(BUILD_DIR)/kernel.bin))
+qemu-nographic:
+	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=ibsenos.img -nographic
 
-$(BUILD_DIR)/%.s.o: %.s | $(BUILD_DIR)
-	$(AS) $(ASMFLAGS) -c -o $@ $<
+qemu-graphic:
+	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=ibsenos.img 
 
-$(BUILD_DIR)/%.c.o: %.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c -o $@ $<
+$(PROJECT).img: BOOTX64.EFI
+	dd if=/dev/zero of=$@ bs=1M count=32
+	mformat -i $@ -f 1440 ::
+	mmd -i $@ ::/EFI
+	mmd -i $@ ::/EFI/BOOT
+	mcopy -i $@ $< ::/EFI/BOOT
 
-$(BUILD_DIR):
-	mkdir $(BUILD_DIR)
+BOOTX64.EFI: loader.o
+	$(LD) $(LDFLAGS) -o $@ $< 
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(WARNS) -c -o $@ $<

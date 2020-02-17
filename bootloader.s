@@ -69,7 +69,7 @@ _init:
     call    print_message
     movw    %bp, %sp
 
-    # Set up A20 gate
+    # Set up Fast A20 gate
     in      $0x92, %al
     or      $2, %al
     out	    %al, $0x92
@@ -148,6 +148,12 @@ _load_done:
     call    print_message
     movw    %bp, %sp
 
+    push    %ax
+    movb    $0x13, %al
+    movb    $0x0, %ah
+    int     $0x10
+    pop     %ax
+
 _setup_gdt:
     # Segment selector table indicator flag (bit 2).
     # Specifies the descriptor table to use:
@@ -178,11 +184,11 @@ _setup_gdt:
 
     # Far jump, forcing CS to be loaded with the
     # proper segment selector.
-    ljmp    $CODE_SELECT, $new_world + (SEGM << 4)
+    ljmp    $CODE_SELECT, $protected_mode + (SEGM << 4)
 
 
 .code32
-new_world:
+protected_mode:
     # We just far jumped, need to update our view
     # of the world again by setting segment registers.
     movw    $DATA_SELECT, %ax
@@ -198,9 +204,8 @@ new_world:
     
     # Jump to the kernel
     ljmp    $CODE_SELECT, $KERNEL_ADDR
+
 .code16
-
-
 # Clear everything on the screen
 # Does not clobber registers
 clear_screen:

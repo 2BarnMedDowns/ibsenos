@@ -175,6 +175,7 @@ _setup_gdt:
     # proper segment selector.
     ljmp    $CODE_SELECT, $new_world + (SEGM << 4)
 
+
 .code32
 new_world:
     # We just far jumped, need to update our view
@@ -193,7 +194,6 @@ new_world:
     # Jump to the kernel
     ljmp    $CODE_SELECT, $KERNEL_ADDR
 .code16
-
 
 
 # Clear everything on the screen
@@ -256,12 +256,16 @@ _print_leave:
     popw    %bp
     ret
 
+# Global Descriptor Table Register
+# 32-bit base address and 16-bit limit for the GDT.
+#
+# Limit should be number of bytes - 1.
 gdtr:
     .word   end - gdt - 1       # last byte of GDT
     .long   gdt + (SEGM << 4)   # base address
 
 # Global Descriptor Table
-# 8-byte aligned
+# 8-byte aligned, and entries are 8 bytes long.
 .align  8
 gdt:
     # First entry of GDT is not used by processor

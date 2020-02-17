@@ -22,8 +22,11 @@ LDFLAGS := -L$(EFI_LIBRARY) -lefi -lgnuefi -lgcc -e efi_main -Wl,-dll -shared -W
 all: iso
 
 clean:
-	$(RM) loader.o
-	$(RM) $(PROJECT).img BOOTX64.EFI
+	$(RM) loader.o BOOTX64.EFI
+
+distclean: clean
+	$(RM) $(PROJECT).iso $(PROJECT).img
+
 
 iso: $(PROJECT).iso
 

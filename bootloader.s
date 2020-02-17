@@ -117,7 +117,7 @@ _read_sector:
     movb    $0x00, %dl          # drive number
     movw    DESTINATION(%bp), %ax
 
-    # destination in ES:BX
+    # Destination in ES:BX
     movw    %ax,%es
     movw    $0x0000, %bx
 
@@ -157,7 +157,7 @@ _setup_gdt:
     # Segment selector requested privilege levels (bits 0 and 1)
     .equ    SELECT_RPL, 0
     
-    # Segment selector for bootblock and kernel
+    # Segment selector for kernel code (and bootloader)
     .equ    CODE_SELECT,    1 << 3 & ~SELECT_TI | SELECT_RPL
     
     # Segment selector for kernel data

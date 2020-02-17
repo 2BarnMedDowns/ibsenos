@@ -5,13 +5,14 @@ CC := i686-elf-gcc
 LD := i686-elf-ld
 AS := i686-elf-as
 
-KERNEL_ADDR=0x1000
+KERNEL_ADDR = 0x1000
 KERNEL_STACK = 0xa0000
 
 CFLAGS := -std=gnu99 -Wall -Wextra -nostdlib -DKERNEL_ADDR=$(KERNEL_ADDR)
 ASMFLAGS := --defsym KERNEL_ADDR=$(KERNEL_ADDR) --defsym KERNEL_STACK=$(KERNEL_STACK) -R
 
-KOBJS := $(addprefix $(BUILD_DIR)/,entry.o kernel.o removeme.o)
+KSRCS := entry.s kernel.c removeme.c
+KOBJS := $(KSRCS:%=$(BUILD_DIR)/%.o)
 
 
 .PHONY: all clean distclean 
@@ -38,10 +39,10 @@ distclean: clean
 $(BUILD_DIR)/bootloader.o: bootloader.s | $(BUILD_DIR)/kernel.bin
 	$(AS) $(ASMFLAGS) -c -o $@ $< --defsym KERNEL_SIZE=$(shell du -b $(BUILD_DIR)/kernel.bin | grep -oP "\d+") 
 
-$(BUILD_DIR)/%.o: %.s | $(BUILD_DIR)
+$(BUILD_DIR)/%.s.o: %.s | $(BUILD_DIR)
 	$(AS) $(ASMFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
+$(BUILD_DIR)/%.c.o: %.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR):

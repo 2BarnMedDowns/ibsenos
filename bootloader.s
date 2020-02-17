@@ -42,10 +42,10 @@ _start:
 
 
 # Some strings for user friendly messages
-_str_welcome:   .asciz  "Please wait while preparing OS.\n\r"
+_str_welcome:   .asciz  "Please wait while preparing OS\n\r"
 _str_loading:   .asciz  "Loading image..."
-_str_done:      .asciz  "OK\n\r"
-_str_fail:      .asciz  "FAIL\n\r"
+_str_done:      .asciz  "DONE\n\r"
+_str_fail:      .asciz  "FAILED :(\n\r"
 
 
 # Initialize stack and data segments.
@@ -148,6 +148,11 @@ _load_done:
     call    print_message
     movw    %bp, %sp
 
+    # Wait for about 2 seconds so the drive can stop spinning
+    call    delay
+    call    delay
+
+    # Set up video mode 13
     push    %ax
     movb    $0x13, %al
     movb    $0x0, %ah
@@ -199,13 +204,41 @@ protected_mode:
     movw    %ax, %ss
     movl    $KERNEL_STACK, %esp
 
-    # Push OS image size and start address onto the stack
-    pushl   $KERNEL_SECTORS
+    # Place OS size in ECX
+    movl    $KERNEL_SECTORS, %ecx
     
     # Jump to the kernel
     ljmp    $CODE_SELECT, $KERNEL_ADDR
-
 .code16
+
+
+# Delay for around 1 second
+# Does not clobber registers.
+delay:
+    pushw   %bp
+    movw    %sp, %bp
+    pushw   %ax
+    pushw   %cx
+    pushw   %dx
+
+    # Delays for CX:DX microseconds (CX is high, DX is low)
+    # Dec 1 million = 0xf4240
+    movw    $0x000f, %cx 
+    movw    $0x4240, %dx 
+
+    movb    $0, %al
+    movb    $0x86, %ah  # function number
+    int     $0x15
+
+_delay_leave:
+    popw    %dx
+    popw    %cx
+    popw    %ax
+    movw    %bp, %sp
+    popw    %bp
+    ret
+
+
 # Clear everything on the screen
 # Does not clobber registers
 clear_screen:

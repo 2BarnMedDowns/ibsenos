@@ -45,7 +45,7 @@ _str_fail:      .asciz  "FAIL\n\r"
 # Initialize stack and data segments.
 # This is after we moved ourselves.
 _init:
-    # We just jumped, so we need to update our view of 
+    # We just relocated, so we need to update our view of 
     # the world by setting segment pointers
     movw    $SEGM, %ax
     movw    %ax, %es
@@ -69,6 +69,7 @@ _init:
     out	    %al, $0x92
 
     # Load OS image from disk
+    # First, let's initialize some variables
     subw    $10, %sp    # Reserve space for variables
     .equ    SECTOR,         -2
     .equ    HEAD,           -4
@@ -78,12 +79,16 @@ _init:
     movw    $2, SECTOR(%bp)
     movw    $0, HEAD(%bp)
     movw    $0, TRACK(%bp)
+
     movw    $KERNEL_ADDR >> 4, DESTINATION(%bp)
+    # Align size (in bytes) to sectors (2^9=512)
     movw    $(KERNEL_SIZE + 511) >> 9, NUM_SECTORS(%bp)
 
     pushw   $_str_loading
     call    print_message
 
+    # Main read loop
+    # Load OS image from disk
 _load_loop:
     cmpw    $0, NUM_SECTORS(%bp)
     jz      _load_done
@@ -115,6 +120,8 @@ _read_sector:
     movb    $1, %al             # number of sectors to read
     int     $0x13
 
+    # Check if reading was successful,
+    # and update sector counter
     cmpb    $0, %ah
     jne     _load_error
     incw    SECTOR(%bp)
@@ -122,6 +129,7 @@ _read_sector:
     decw    NUM_SECTORS(%bp)
     jmp     _load_loop
 
+    # Something went wrong :(
 _load_error:
     pushw   $_str_fail
     call    print_message
@@ -129,9 +137,8 @@ _load_error:
 _forever:
     jmp     _forever
 
-    # We made it!
-    # Continue setting up protected mode in order
-    # to make the jump
+    # Phew, we made it!
+    # Time to tell the user we're done loading from disk.
 _load_done:
     pushw   $_str_done
     call    print_message
@@ -140,6 +147,7 @@ _load_done:
 
 
 # Clear everything on the screen
+# Does not clobber registers
 clear_screen:
     pushw   %ax
     movb    $0, %ah	# Function number
@@ -150,13 +158,12 @@ clear_screen:
 
 
 # Print loading dot
+# Does not clobber registers
 print_dot:
     pushw   %ax
     pushw   %bx
-
     movb    $'.', %al
     call    _print
-
     popw    %bx
     popw    %ax
     ret
@@ -172,6 +179,7 @@ _print:
     ret
 
 # Print a message to screen
+# Does not clobber registers
 print_message:
     # Store registers
     pushw   %bp

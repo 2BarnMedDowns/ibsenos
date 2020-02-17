@@ -36,10 +36,10 @@ _start:
 
 
 # Some strings for user friendly messages
-_str_welcome:   .asciz  "IbsenOS version 0.1\n\r"
-_str_loading:   .asciz  "Loading from diskette"
-_str_done:      .asciz  "OK"
-_str_fail:      .asciz  "FAIL"
+_str_welcome:   .asciz  "Please wait while preparing OS.\n\r"
+_str_loading:   .asciz  "Loading image..."
+_str_done:      .asciz  "OK\n\r"
+_str_fail:      .asciz  "FAIL\n\r"
 
 
 # Initialize stack and data segments.
@@ -81,10 +81,63 @@ _init:
     movw    $KERNEL_ADDR >> 4, DESTINATION(%bp)
     movw    $(KERNEL_SIZE + 511) >> 9, NUM_SECTORS(%bp)
 
-forever:
-    #cli
-    #hlt
-    jmp     forever
+    pushw   $_str_loading
+    call    print_message
+
+_load_loop:
+    cmpw    $0, NUM_SECTORS(%bp)
+    jz      _load_done
+    call    print_dot
+    cmpw    $18, SECTOR(%bp)
+    jle     _read_sector
+    movw    $1, SECTOR(%bp)
+    cmpw    $0, HEAD(%bp)
+    jnz     _next_track
+    movw    $1, HEAD(%bp)
+    jmp     _read_sector
+
+_next_track:
+    movw     $0, HEAD(%bp)
+    incw    TRACK(%bp)
+
+_read_sector:
+    movb    TRACK(%bp), %ch     # track number
+    movb    SECTOR(%bp), %cl    # sector number
+    movb    HEAD(%bp), %dh      # head number
+    movb    $0x00, %dl          # drive number
+    movw    DESTINATION(%bp), %ax
+
+    # destination in ES:BX
+    movw    %ax,%es
+    movw    $0x0000, %bx
+
+    movb    $2, %ah             # function number
+    movb    $1, %al             # number of sectors to read
+    int     $0x13
+
+    cmpb    $0, %ah
+    jne     _load_error
+    incw    SECTOR(%bp)
+    addw    $512 >> 4, DESTINATION(%bp)
+    decw    NUM_SECTORS(%bp)
+    jmp     _load_loop
+
+_load_error:
+    pushw   $_str_fail
+    call    print_message
+
+_forever:
+    jmp     _forever
+
+    # We made it!
+    # Continue setting up protected mode in order
+    # to make the jump
+_load_done:
+    pushw   $_str_done
+    call    print_message
+    movw    %bp, %sp
+    jmp     _forever
+
 
 # Clear everything on the screen
 clear_screen:

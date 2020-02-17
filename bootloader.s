@@ -148,6 +148,7 @@ _load_done:
     call    print_message
     movw    %bp, %sp
 
+_enter_mode13
     push    %ax
     movb    $0x13, %al
     movb    $0x0, %ah

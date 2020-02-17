@@ -22,7 +22,7 @@ $(NAME).img: $(BUILD_DIR)/bootblock.bin $(BUILD_DIR)/kernel.bin
 	cat $^ > $@
 
 $(BUILD_DIR)/bootblock.bin: $(BUILD_DIR)/bootloader.o
-	$(LD) -T bootblock.ld -o $@ $^ --oformat=binary
+	$(LD) -Ttext 0x0 -e _start -o $@ $^ --oformat=binary
 
 $(BUILD_DIR)/kernel.bin: $(KOBJS)
 	$(LD) -Ttext $(KERNEL_ADDR) -o $@ $^ --oformat=binary

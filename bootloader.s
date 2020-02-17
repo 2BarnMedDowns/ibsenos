@@ -329,3 +329,10 @@ gdt:
     .word   0xc092  # flags
     .byte   0x00    # base 31:24
 end:
+
+# Write magic 0x55AA signature in the last two bytes
+# of the boot sector.
+_magic:
+    .space  510-(.-_start)
+    .short  0xaa55
+

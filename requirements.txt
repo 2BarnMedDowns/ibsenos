@@ -2,3 +2,4 @@ mingw-w64
 gnu-efi
 ovmf
 mtools
+xorriso

@@ -18,20 +18,30 @@ CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector
 CFLAGS += -I$(EFI_INCLUDE) -I$(EFI_INCLUDE)/$(ARCH_TARGET) -I$(EFI_INCLUDE)/protocol
 LDFLAGS := -L$(EFI_LIBRARY) -lefi -lgnuefi -lgcc -e efi_main -Wl,-dll -shared -Wl,--subsystem,10 
 
-.PHONY: $(PROJECT).img loader image all clean distclean qemu-graphic qemu-nographic
-all: $(PROJECT).img
+.PHONY: $(PROJECT).img loader image iso all clean distclean qemu-graphic qemu-nographic qemu-iso
+all: iso
 
 clean:
 	$(RM) loader.o
 	$(RM) $(PROJECT).img BOOTX64.EFI
 
+iso: $(PROJECT).iso
+
 image: $(PROJECT).img
 
-qemu-nographic:
-	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=ibsenos.img -nographic
+qemu-iso: $(PROJECT).iso
+	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -cdrom $< -nographic
 
-qemu-graphic:
-	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=ibsenos.img 
+qemu-nographic: $(PROJECT).img
+	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=$< -nographic
+
+qemu-graphic: $(PROJECT).img
+	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=$<
+
+$(PROJECT).iso: $(PROJECT).img
+	mkdir -p /tmp/iso
+	cp $< /tmp/iso/
+	xorriso -as mkisofs -R -f -e $< -no-emul-boot -o $@ /tmp/iso
 
 $(PROJECT).img: BOOTX64.EFI
 	dd if=/dev/zero of=$@ bs=1M count=32

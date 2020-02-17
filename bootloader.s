@@ -137,13 +137,63 @@ _load_error:
 _forever:
     jmp     _forever
 
-    # Phew, we made it!
-    # Time to tell the user we're done loading from disk.
 _load_done:
+    # Phew, we made it!
     pushw   $_str_done
     call    print_message
     movw    %bp, %sp
-    jmp     _forever
+
+_setup_gdt:
+    # Segment selector table indicator flag (bit 2).
+    # Specifies the descriptor table to use:
+    #    0 = GDT, 1 = LDT
+    .equ    SELECT_TI, 1 << 2
+
+    # Segment selector requested privilege levels (bits 0 and 1)
+    .equ    SELECT_RPL, 0
+    
+    # Segment selector for bootblock and kernel
+    .equ    CODE_SELECT,    1 << 3 & ~SELECT_TI | SELECT_RPL
+    
+    # Segment selector for kernel data
+    .equ    DATA_SELECT,    2 << 3 & ~SELECT_TI | SELECT_RPL
+
+    # Disable interrupts
+    cli
+
+    # Load the Global Descriptor Table Register
+    # Use base address of the GDT
+    lgdt    gdtr
+
+    # Set the PE flag (bit 0) in control register CR0
+    # This enables protected mode.
+    smsw    %ax
+    orw     $1, %ax
+    lmsw    %ax
+
+    # Far jump, forcing CS to be loaded with the
+    # proper segment selector.
+    ljmp    $CODE_SELECT, $new_world + (SEGM << 4)
+
+.code32
+new_world:
+    # We just far jumped, need to update our view
+    # of the world again by setting segment registers.
+    movw    $DATA_SELECT, %ax
+    movw    %ax, %ds
+    movw    %ax, %es
+
+    # Setup a stack for the kernel
+    movw    %ax, %ss
+    movl    $KERNEL_STACK, %esp
+
+    # Push OS image size onto the stack
+    pushl    $(KERNEL_SIZE + 511) >> 9
+    
+    # Jump to the kernel
+    ljmp    $CODE_SELECT, $KERNEL_ADDR
+.code16
+
 
 
 # Clear everything on the screen
@@ -206,4 +256,29 @@ _print_leave:
     popw    %bp
     ret
 
-_magic: .asciz "IbsenOS is made by Axel and Jonas"
+gdtr:
+    .word   end - gdt - 1       # last byte of GDT
+    .long   gdt + (SEGM << 4)   # base address
+
+# Global Descriptor Table
+# 8-byte aligned
+.align  8
+gdt:
+    # First entry of GDT is not used by processor
+    .long   0
+    .long   0
+
+    # Kernel code segment descriptor
+    .word   0xffff  # limit
+    .word   0x0000  # base 15:00
+    .byte   0x00    # base 23:16
+    .word   0xc09a  # flags
+    .byte   0x00    # base 31:24
+
+    # Kernel data segment descriptor
+    .word   0xffff  # limit
+    .word   0x0000  # base 15:00
+    .byte   0x00    # base 23:16
+    .word   0xc092  # flags
+    .byte   0x00    # base 31:24
+end:

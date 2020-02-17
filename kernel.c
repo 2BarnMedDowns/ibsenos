@@ -1,7 +1,10 @@
-extern void some_symbol(const char*);
+static short* screen = (short*) 0xb8000; /* Test if data segment works */
+
+extern void clear_screen(short* screen); /* Test if linking works */
 
 void _start(void)
 {
-    char test[] = "Hello";
-    some_symbol(test);
+    clear_screen(screen);
+
+    while (1);
 }

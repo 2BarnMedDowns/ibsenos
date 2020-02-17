@@ -6,9 +6,10 @@ LD := i686-elf-ld
 AS := i686-elf-as
 
 KERNEL_ADDR=0x1000
+KERNEL_STACK = 0xa0000
 
 CFLAGS := -std=gnu99 -Wall -Wextra -nostdlib -DKERNEL_ADDR=$(KERNEL_ADDR)
-ASMFLAGS := --defsym KERNEL_ADDR=$(KERNEL_ADDR) -R
+ASMFLAGS := --defsym KERNEL_ADDR=$(KERNEL_ADDR) --defsym KERNEL_STACK=$(KERNEL_STACK) -R
 
 KOBJS := $(addprefix $(BUILD_DIR)/,entry.o kernel.o removeme.o)
 

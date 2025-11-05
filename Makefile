@@ -42,13 +42,22 @@ qemu-graphic: $(PROJECT).img
 	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=$<
 
 $(PROJECT).iso: $(PROJECT).img
-	mkdir -p /tmp/iso
-	cp $< /tmp/iso/
-	xorriso -as mkisofs -R -f -e $< -no-emul-boot -o $@ /tmp/iso
+	@TEMPDIR=$$(mktemp -d); \
+	trap 'rm -rf $$TEMPDIR' EXIT INT TERM; \
+	cp $< $$TEMPDIR ; \
+	xorriso -as mkisofs -R -f -e $< -no-emul-boot -o $@ $$TEMPDIR 
+
+#$(PROJECT).iso: TD = $(shell mktemp -d)
+#$(PROJECT).iso: $(PROJECT).img
+#	echo ${TD}
+#	cp $< ${TD}
+#	xorriso -as mkisofs -R -f -e $< -no-emul-boot -o $@ ${TD}
+#	rm -rf ${TD}
+#	echo ${TD}
 
 $(PROJECT).img: BOOTX64.EFI
 	dd if=/dev/zero of=$@ bs=1M count=32
-	mformat -i $@ -f 1440 ::
+	mformat -i $@ ::
 	mmd -i $@ ::/EFI
 	mmd -i $@ ::/EFI/BOOT
 	mcopy -i $@ $< ::/EFI/BOOT

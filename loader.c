@@ -1,5 +1,5 @@
 #include <efi.h>
-#include <efilib.h>
+//#include <efilib.h>
 
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImgHandle, EFI_SYSTEM_TABLE* SysTbl)
@@ -14,8 +14,9 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImgHandle, EFI_SYSTEM_TABLE* SysTbl)
 
     SysTbl->ConOut->OutputString(SysTbl->ConOut, L"Please wait while preparing OS\n\r");
 
-    /* TODO: ifdef DEBUG, disable UEFI watchdog timer */
-
+#ifdef DEBUG
+    SysTbl->BootServices->SetWatchdogTimer(0, 0, 0, NULL);
+#endif
 
     while (1);
     return EFI_SUCCESS;

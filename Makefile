@@ -1,8 +1,8 @@
 PROJECT := ibsenos
 
-EFI_INCLUDE := /usr/include/efi
+EFI_INCLUDE := /opt/local/lib/gcc/x86_64-w64-mingw32/15.2.0/include/efi
 EFI_LIBRARY := /usr/lib
-OVMF_PATH := /usr/share/OVMF/OVMF_CODE.fd 
+OVMF_PATH := /usr/share/OVMF/OVMF_CODE.fd
 
 ARCH_TARGET := x86_64
 ARCH_HOSTED := w64
@@ -16,7 +16,7 @@ WARNINGS = all extra shadow unused error-implicit-function-declaration
 WARNS := $(addprefix -W,$(WARNINGS))
 CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
 CFLAGS += -I$(EFI_INCLUDE) -I$(EFI_INCLUDE)/$(ARCH_TARGET) -I$(EFI_INCLUDE)/protocol
-LDFLAGS := -L$(EFI_LIBRARY) -lefi -lgnuefi -lgcc -e efi_main -Wl,-dll -shared -Wl,--subsystem,10 
+LDFLAGS := -L$(EFI_LIBRARY) -lefi -lgnuefi -lgcc -e efi_main -Wl,-dll -shared -Wl,--subsystem,10
 
 .PHONY: $(PROJECT).img loader image iso all clean distclean qemu-graphic qemu-nographic qemu-iso
 all: iso
@@ -54,7 +54,7 @@ $(PROJECT).img: BOOTX64.EFI
 	mcopy -i $@ $< ::/EFI/BOOT
 
 BOOTX64.EFI: loader.o
-	$(LD) $(LDFLAGS) -o $@ $< 
+	$(LD) $(LDFLAGS) -o $@ $<
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(WARNS) -c -o $@ $<

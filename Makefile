@@ -1,74 +1,83 @@
 PROJECT := ibsenos
 
-EFI_INCLUDE := /usr/include/efi
-EFI_LIBRARY := /usr/lib
-OVMF_PATH := /usr/share/OVMF/OVMF_CODE.fd 
+OVMF_PATH ?= /usr/share/OVMF/OVMF_CODE.fd 
 
-ARCH_TARGET := x86_64
-ARCH_HOSTED := w64
+ARCH_TARGET ?= x86_64
+ARCH_HOSTED ?= w64
+
+BUILD_DIR ?= build
 
 CC := $(ARCH_TARGET)-$(ARCH_HOSTED)-mingw32-gcc
 LD := $(CC)
 AS := $(CC)
 
-WARNINGS = all extra shadow unused error-implicit-function-declaration
-
-WARNS := $(addprefix -W,$(WARNINGS))
+WARNINGS := all extra shadow unused error-implicit-function-declaration
 CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
-CFLAGS += -I$(EFI_INCLUDE) -I$(EFI_INCLUDE)/$(ARCH_TARGET) -I$(EFI_INCLUDE)/protocol
-ifneq ($(RELEASE),)
+
+ifneq ($(BUILD_RELEASE),)
 	CFLAGS += -g -DDEBUG
 else
 	CFLAGS += -DNDEBUG -O2
 endif
-LDFLAGS := -L$(EFI_LIBRARY) -lefi -lgcc -e efi_main -Wl,-dll -shared -Wl,--subsystem,10 
 
-.PHONY: $(PROJECT).img loader image iso all clean distclean qemu-graphic qemu-nographic qemu-iso
+LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
+
+# Usage: $(call target,<target name>,<build name>,<entry function>,<space separated list of source files>)
+define target
+$1-build = $$(BUILD_DIR)/$2
+$1-srcs = $4
+$1-objs = $$(addprefix $$(BUILD_DIR)/,$$(patsubst %.c,%.o,$$(filter-out %.h,$$($1-srcs))))
+
+.PHONY: $1 $1-clean
+
+TARGETS += $1
+$1: $$($1-build)
+
+$1-clean:
+	$$(RM) $$($1-build) $$($1-objs)
+
+$$($1-build): $$($1-objs)
+	@mkdir -p $$(dir $$@)
+	$$(LD) $$(LDFLAGS) -e $3 -o $$@ $$^
+
+$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs))
+	@mkdir -p $$(dir $$@)
+	$$(CC) $$(CFLAGS) $$(addprefix -W,$(WARNINGS)) -c -o $$@ $$<
+endef
+
+
+.PHONY: all clean image iso qemu-graphic qemu-nographic qemu-iso
+
 all: iso
 
-clean:
-	$(RM) loader/bootloader.o BOOTX64.EFI
+# Boot loader target
+$(eval $(call target,bootloader,BOOTX64.EFI,efi_main,bootloader/bootloader.o))
 
-distclean: clean
-	$(RM) $(PROJECT).iso $(PROJECT).img
+clean: $(TARGETS:%=%-clean)
+	$(RM) $(BUILD_DIR)/$(PROJECT).iso $(BUILD_DIR)/$(PROJECT).img
 
+iso: $(BUILD_DIR)/$(PROJECT).iso
 
-iso: $(PROJECT).iso
+image: $(BUILD_DIR)/$(PROJECT).img
 
-image: $(PROJECT).img
+qemu-iso: $(BUILD_DIR)/$(PROJECT).iso
+	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -cdrom $< -nographic
 
-qemu-iso: $(PROJECT).iso
-	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -cdrom $< -nographic
+qemu-nographic: $(BUILD_DIR)/$(PROJECT).img
+	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -drive format=raw,file=$< -nographic
 
-qemu-nographic: $(PROJECT).img
-	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=$< -nographic
+qemu-graphic: $(BUILD_DIR)/$(PROJECT).img
+	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -drive format=raw,file=$<
 
-qemu-graphic: $(PROJECT).img
-	qemu-system-x86_64 -net none -bios $(OVMF_PATH) -drive format=raw,file=$<
-
-$(PROJECT).iso: $(PROJECT).img
+$(BUILD_DIR)/$(PROJECT).iso: $(BUILD_DIR)/$(PROJECT).img
 	@TEMPDIR=$$(mktemp -d); \
 	trap 'rm -rf $$TEMPDIR' EXIT INT TERM; \
 	cp $< $$TEMPDIR ; \
-	xorriso -as mkisofs -R -f -e $< -no-emul-boot -o $@ $$TEMPDIR 
+	xorriso -as mkisofs -R -f -e $(PROJECT).img $< -no-emul-boot -o $@ $$TEMPDIR 
 
-#$(PROJECT).iso: TD = $(shell mktemp -d)
-#$(PROJECT).iso: $(PROJECT).img
-#	echo ${TD}
-#	cp $< ${TD}
-#	xorriso -as mkisofs -R -f -e $< -no-emul-boot -o $@ ${TD}
-#	rm -rf ${TD}
-#	echo ${TD}
-
-$(PROJECT).img: BOOTX64.EFI
+$(BUILD_DIR)/$(PROJECT).img: $(bootloader-build)
 	dd if=/dev/zero of=$@ bs=1M count=32
 	mformat -i $@ ::
 	mmd -i $@ ::/EFI
 	mmd -i $@ ::/EFI/BOOT
-	mcopy -i $@ $< ::/EFI/BOOT
-
-BOOTX64.EFI: loader/bootloader.o
-	$(LD) $(LDFLAGS) -o $@ $< 
-
-%.o: %.c
-	$(CC) $(CFLAGS) $(WARNS) -c -o $@ $<
+	mcopy -v -i $@ $< ::/EFI/BOOT

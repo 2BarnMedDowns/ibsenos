@@ -16,13 +16,18 @@ WARNINGS = all extra shadow unused error-implicit-function-declaration
 WARNS := $(addprefix -W,$(WARNINGS))
 CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
 CFLAGS += -I$(EFI_INCLUDE) -I$(EFI_INCLUDE)/$(ARCH_TARGET) -I$(EFI_INCLUDE)/protocol
+ifneq ($(RELEASE),)
+	CFLAGS += -g -DDEBUG
+else
+	CFLAGS += -DNDEBUG -O2
+endif
 LDFLAGS := -L$(EFI_LIBRARY) -lefi -lgcc -e efi_main -Wl,-dll -shared -Wl,--subsystem,10 
 
 .PHONY: $(PROJECT).img loader image iso all clean distclean qemu-graphic qemu-nographic qemu-iso
 all: iso
 
 clean:
-	$(RM) loader.o BOOTX64.EFI
+	$(RM) loader/bootloader.o BOOTX64.EFI
 
 distclean: clean
 	$(RM) $(PROJECT).iso $(PROJECT).img
@@ -62,7 +67,7 @@ $(PROJECT).img: BOOTX64.EFI
 	mmd -i $@ ::/EFI/BOOT
 	mcopy -i $@ $< ::/EFI/BOOT
 
-BOOTX64.EFI: loader.o
+BOOTX64.EFI: loader/bootloader.o
 	$(LD) $(LDFLAGS) -o $@ $< 
 
 %.o: %.c

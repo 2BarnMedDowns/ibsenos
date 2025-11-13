@@ -48,33 +48,52 @@ endef
 
 .PHONY: all clean image iso qemu-graphic qemu-nographic qemu-iso
 
-all: iso
+# Make a disk image that can be booted with Qemu
+all: image
 
 # Boot loader target
 $(eval $(call target,bootloader,BOOTX64.EFI,efi_main,bootloader/bootloader.o))
 
+
 clean: $(TARGETS:%=%-clean)
 	$(RM) $(BUILD_DIR)/$(PROJECT).iso $(BUILD_DIR)/$(PROJECT).img
 
+
+# Build a CDROM iso
 iso: $(BUILD_DIR)/$(PROJECT).iso
 
+
+# Build a disk image
 image: $(BUILD_DIR)/$(PROJECT).img
 
+
+# Launch Qemu instance but using the ISO image instead of the disk
 qemu-iso: $(BUILD_DIR)/$(PROJECT).iso
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -cdrom $< -nographic
 
+
+# Short-hand for launching a Qemu instance without graphics (terminal)
+# Ctrl+A+X for exit
 qemu-nographic: $(BUILD_DIR)/$(PROJECT).img
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -drive format=raw,file=$< -nographic
 
+
+# Short-hand for launching a Qemu instance with graphics
+# Ctrl+Alt+G for releasing mouse grab
 qemu-graphic: $(BUILD_DIR)/$(PROJECT).img
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -drive format=raw,file=$<
 
+
+# Create a CDROM ISO from the disk image
 $(BUILD_DIR)/$(PROJECT).iso: $(BUILD_DIR)/$(PROJECT).img
 	@TEMPDIR=$$(mktemp -d); \
 	trap 'rm -rf $$TEMPDIR' EXIT INT TERM; \
-	cp $< $$TEMPDIR ; \
+	cp $< $$TEMPDIR/$(PROJECT).img ; \
 	xorriso -as mkisofs -R -f -e $(PROJECT).img $< -no-emul-boot -o $@ $$TEMPDIR 
 
+
+# Create a disk image and format it with MSDOS file system
+# This is used by the EFI boot loader
 $(BUILD_DIR)/$(PROJECT).img: $(bootloader-build)
 	dd if=/dev/zero of=$@ bs=1M count=32
 	mformat -i $@ ::

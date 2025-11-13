@@ -3,10 +3,20 @@
 #include "console.h"
 
 
-efi_status_t EFIAPI efi_main(void *, efi_systbl_t *systbl)
+static const struct efi_systbl *ST;
+
+
+static void EFIAPI print(const wchar_t *string)
 {
-    systbl->conout->reset(systbl->conout, 0); // TODO: should be clearscreen instead
-    systbl->conout->output_string(systbl->conout, L"Hello, world!\n\r");
+    ST->consoleout->output_string(ST->consoleout, string);
+}
+
+
+efi_status_t EFIAPI efi_main(void *, const struct efi_systbl *systbl)
+{
+    ST = systbl;
+    systbl->consoleout->reset(systbl->consoleout, 0); // TODO: should be clearscreen instead
+    print(L"Hello, world!\n\r");
 
     while (1);
 }

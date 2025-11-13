@@ -1,6 +1,8 @@
 #ifndef __UEFI_CONSOLE_H__
 #define __UEFI_CONSOLE_H__
 
+#include <stddef.h>
+#include <stdint.h>
 #include "uefi.h"
 
 
@@ -15,10 +17,17 @@
 /* Forward declaration */
 struct efi_simple_text_output_protocol;
 
+
 struct efi_simple_text_output_protocol
 {
-    efi_status_t (EFIAPI *reset)(struct efi_simple_text_output_protocol *this, uint8_t extended_verification);
-    efi_status_t (EFIAPI *output_string)(struct efi_simple_text_output_protocol *this, wchar_t *string);
+    efi_status_t (EFIAPI *reset)(
+        const struct efi_simple_text_output_protocol *this, 
+        uint8_t extended_verification
+    );
+    efi_status_t (EFIAPI *output_string)(
+        const struct efi_simple_text_output_protocol *this, 
+        const wchar_t *string
+    );
     // TODO
 };
 

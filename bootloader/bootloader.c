@@ -1,8 +1,12 @@
-#include "efi.h"
+#include "uefi.h"
+#include "systbl.h"
+#include "console.h"
 
 
-efi_status_t EFIAPI efi_main(void *, void *)
+efi_status_t EFIAPI efi_main(void *, efi_systbl_t *systbl)
 {
+    systbl->conout->reset(systbl->conout, 0); // TODO: should be clearscreen instead
+    systbl->conout->output_string(systbl->conout, L"Hello, world!\n\r");
 
     while (1);
 }

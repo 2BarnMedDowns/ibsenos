@@ -14,6 +14,7 @@ AS := $(CC)
 WARNINGS := all extra shadow unused error-implicit-function-declaration
 CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
 CFLAGS += $(addprefix -W,$(WARNINGS))
+CFLAGS += -Iinclude/
 LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
 
 
@@ -47,7 +48,7 @@ endef
 all: iso
 
 # Boot loader target
-$(eval $(call target,bootloader,BOOTX64.EFI,efi_main,bootloader/bootloader.o))
+$(eval $(call target,bootloader,BOOTX64.EFI,uefi_init,uefiboot/init.c include/efi.h))
 
 
 clean: $(TARGETS:%=%-clean)

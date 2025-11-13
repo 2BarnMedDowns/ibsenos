@@ -1,24 +1,37 @@
-#include "uefi.h"
-#include "systbl.h"
-#include "console.h"
+#include <efi.h>
 
 
-static const struct efi_systbl *ST;
+static struct efi_system_table *ST = NULL;
 
 
-static void EFIAPI print(const wchar_t *string)
+static void print(efi_char16_t *str)
 {
-    ST->consoleout->output_string(ST->consoleout, string);
+    efi_simple_text_output_protocol_t *proto = (efi_simple_text_output_protocol_t*) ST->con_out;
+    proto->output_string(proto, str);
 }
 
 
-efi_status_t EFIAPI efi_main(void *, const struct efi_systbl *systbl)
+/*
+ * EFI image entry point
+ * https://uefi.org/specs/UEFI/2.11/04_EFI_System_Table.html#uefi-image-entry-point
+ */
+efi_status_t __efiapi uefi_init(void *, struct efi_system_table *systab)
 {
-    ST = systbl;
-    systbl->consoleout->reset(systbl->consoleout, 0); // TODO: should be clearscreen instead
-    print(L"Hello, world!\n\r");
+    ST = NULL;
 
-    while (1);
+    if (systab->hdr.signature != EFI_SYSTEM_TABLE_SIGNATURE) {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    ST = systab;
+
+    print(L"UEFI firmware vendor: ");
+    print((efi_char16_t*) systab->fw_vendor);
+    print(L"\r\n");
+
+    // TODO: set up boot services and stuff here
+
+    for (;;) {}
 }
 
 //

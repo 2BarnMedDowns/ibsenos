@@ -1,12 +1,12 @@
 # ubuntu
-#mingw-w64
-gnu-efi
+mingw-w64
+#gnu-efi
 ovmf
 mtools
 xorriso
 
 # fedora
 qemu
-#mingw64-gcc
+mingw64-gcc
 xorriso
 gnu-efi-devel

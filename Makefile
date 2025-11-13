@@ -6,8 +6,6 @@ ARCH_TARGET ?= x86_64
 ARCH_HOSTED ?= w64
 
 BUILD_DIR ?= build
-INCLUDE_DIR ?= /usr/include
-LIBRARY_DIR ?= /usr/lib  # FIXME: Not used now, but may be needed for stdc stuff (in which case we need to depend on ARCH_TARGET)
 
 CC := $(ARCH_TARGET)-$(ARCH_HOSTED)-mingw32-gcc
 LD := $(CC)
@@ -15,7 +13,6 @@ AS := $(CC)
 
 WARNINGS := all extra shadow unused error-implicit-function-declaration
 CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
-CFLAGS += -I$(INCLUDE_DIR)
 CFLAGS += $(addprefix -W,$(WARNINGS))
 LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
 

@@ -55,7 +55,8 @@ Mkfile.old
 dkms.conf
 
 # Binary images
-ibsenos.iso
-ibsenos.img
-BOOTX64.EFI
+*.iso
+*.img
+*.EFI
+build/
 

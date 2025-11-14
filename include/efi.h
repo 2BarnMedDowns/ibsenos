@@ -12,9 +12,9 @@
 
 /* Some EFI types */
 typedef unsigned int efi_status_t;
-typedef uint16_t efi_char16_t;
-
+//typedef uint16_t efi_char16_t;
 //typedef uint8_t efi_bool_t;
+//typedef uint64_t efi_uintn_t;
 //typedef uint64_t efi_phys_addr_t;
 //typedef void * efi_handle_t;
 
@@ -73,17 +73,48 @@ typedef struct efi_table_header
 
 
 /*
- * UEFI 2.11 spec, 12.4.1
- * https://uefi.org/specs/UEFI/2.11/12_Protocols_Console_Support.html#efi-simple-text-output-protocol
+ * Forward declaration of an EFI simple text output protocol type.
  */
 typedef struct efi_simple_text_output_protocol efi_simple_text_output_protocol_t;
 
+
+#define EFI_CONSOLE_FG(x) ((x) & 0xf)
+#define EFI_CONSOLE_BG(x) (((x) & 0xf) << 4)
+
+
+/*
+ * EFI simple text output protocol
+ *
+ * See UEFI 2.11 spec, 21.4.1
+ * https://uefi.org/specs/UEFI/2.11/12_Protocols_Console_Support.html#efi-simple-text-output-protocol
+ */
 struct efi_simple_text_output_protocol
 {
-    void *reset;
+    efi_status_t (__efiapi *reset)(efi_simple_text_output_protocol_t*, 
+                                   uint8_t extended_verification);
+
     efi_status_t (__efiapi *output_string)(efi_simple_text_output_protocol_t*,
-                                           efi_char16_t*);
-    void *test_string;
+                                           uint16_t *string);
+    
+    efi_status_t (__efiapi *test_string)(efi_simple_text_output_protocol_t*,
+                                         uint16_t *string);
+    
+    efi_status_t (__efiapi *query_mode)(efi_simple_text_output_protocol_t*,
+                                        uint64_t mode_number,
+                                        uint64_t *columns,
+                                        uint64_t *rows);
+
+    efi_status_t (__efiapi *set_mode)(efi_simple_text_output_protocol_t*,
+                                      uint64_t mode);
+
+    efi_status_t (__efiapi *set_attr)(efi_simple_text_output_protocol_t*,
+                                      uint64_t attribute);
+
+    efi_status_t (__efiapi *clear_screen)(efi_simple_text_output_protocol_t*);
+
+    efi_status_t (__efiapi *set_cursor)(efi_simple_text_output_protocol_t*,
+                                        uint64_t column,
+                                        uint64_t row);
 };
 
 
@@ -96,7 +127,7 @@ struct efi_system_table
     efi_table_hdr_t hdr;
     uint64_t fw_vendor; // physical address of CHAR16 vendor string
     uint32_t fw_revision;
-    uint32_t pad1;      // manual alignment
+    uint32_t pad1;      // manual alignment to 64-bit
     uint64_t con_in_handle;
     uint64_t con_in;
     uint64_t con_out_handle;
@@ -106,7 +137,7 @@ struct efi_system_table
     uint64_t rt;
     uint64_t bt;
     uint32_t num_tables;
-    uint32_t pad2;      // manual alignment
+    uint32_t pad2;      // manual alignment to 64-bit
     uint64_t tables;
 };
 

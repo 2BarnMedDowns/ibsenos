@@ -4,10 +4,41 @@
 static struct efi_system_table *ST = NULL;
 
 
-static void print(efi_char16_t *str)
+static void set_color(uint8_t fg, uint8_t bg)
 {
-    efi_simple_text_output_protocol_t *proto = (efi_simple_text_output_protocol_t*) ST->con_out;
+    efi_simple_text_output_protocol_t *proto =
+        (efi_simple_text_output_protocol_t*) ST->con_out;
+    proto->set_attr(proto, EFI_CONSOLE_FG(fg) | EFI_CONSOLE_BG(bg));
+}
+
+
+static void print(uint16_t *str)
+{
+    efi_simple_text_output_protocol_t *proto = 
+        (efi_simple_text_output_protocol_t*) ST->con_out;
     proto->output_string(proto, str);
+}
+
+
+static void print_uint(uint64_t n)
+{
+    uint16_t buffer[21] = {0};
+    uint8_t len = 21;
+
+    efi_simple_text_output_protocol_t *proto = 
+        (efi_simple_text_output_protocol_t*) ST->con_out;
+
+    buffer[len--] = 0;
+    if (n == 0) {
+        buffer[len--] = L'0';
+    } else {
+        while (n > 0) {
+            buffer[len--] = L'0' + (n % 10);
+            n /= 10;
+        }
+    }
+
+    proto->output_string(proto, &buffer[len+1]);
 }
 
 
@@ -25,9 +56,23 @@ efi_status_t __efiapi uefi_init(void *, struct efi_system_table *systab)
 
     ST = systab;
 
-    print(L"UEFI firmware vendor: ");
-    print((efi_char16_t*) systab->fw_vendor);
-    print(L"\r\n");
+    uint32_t fwrev_major = (systab->fw_revision >> 16);
+    uint32_t fwrev_minor = (systab->fw_revision & 0xffff) / 10;
+    uint32_t fwrev_tertiary = systab->fw_revision % 10;
+
+    set_color(0xf, 0x1);
+
+    print(L"UEFI firmware: ");
+    print((uint16_t*) systab->fw_vendor);
+    print(L" (revision ");
+    print_uint(fwrev_major);
+    print(L".");
+    print_uint(fwrev_minor);
+    print(L".");
+    print_uint(fwrev_tertiary);
+    print(L")\r\n");
+
+    //print(L"\x2588 \x250c \x2514 \x2591");
 
     // TODO: set up boot services and stuff here
 

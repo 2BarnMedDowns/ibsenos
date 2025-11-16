@@ -23,7 +23,10 @@ size_t strncpy(char *restrict dst, const char *src, size_t n);
 
 
 /*
- * Converts the unsigned 64-bit integer to its string representation.
+ * Converts the unsigned 64-bit integer to its string representation
+ * in the specified base.
+ *
+ * If base is 0, decimal (base 10) is assumed.
  *
  * The buffer must be long enough to store the number and the trailing
  * null-terminator in the specified base:

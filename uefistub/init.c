@@ -7,34 +7,37 @@
 const struct efi_system_table *ST = NULL;
 
 
-//static void draw_box(uint64_t x, uint64_t y, uint64_t w, uint64_t h)
-//{
-//    uint16_t line[w];
-//    line[w-1] = 0;
-//
-//    console_out->set_cursor(console_out, x, y);
-//    line[0] = 0x250c;
-//    for (uint16_t c = 1; c < w-1; ++c) {
-//        line[c] = 0x2500;
-//    }
-//    line[w-1] = 0x2510;
-//    efi_char16_puts(line);
-//
-//    for (uint16_t r = y+1; r < y+h-1; ++r) {
-//        console_out->set_cursor(console_out, x, r);
-//        efi_char16_puts(L"\x2502");
-//        console_out->set_cursor(console_out, x+w-1, r);
-//        efi_char16_puts(L"\x2502");
-//    }
-//
-//    console_out->set_cursor(console_out, x, y+h-1);
-//    line[0] = 0x2514;
-//    for (uint16_t c = 1; c < w-1; ++c) {
-//        line[c] = 0x2500;
-//    }
-//    line[w-1] = 0x2518;
-//    efi_char16_puts(line);
-//}
+static void draw_box(uint64_t x, uint64_t y, uint64_t w, uint64_t h)
+{
+    const struct efi_simple_text_output_protocol *conout =
+        (const struct efi_simple_text_output_protocol*) ST->console_out;
+
+    uint16_t line[w];
+    line[w-1] = 0;
+
+    conout->set_cursor(conout, x, y);
+    line[0] = 0x250c;
+    for (uint16_t c = 1; c < w-1; ++c) {
+        line[c] = 0x2500;
+    }
+    line[w-1] = 0x2510;
+    efi_char16_puts(line);
+
+    for (uint16_t r = y+1; r < y+h-1; ++r) {
+        conout->set_cursor(conout, x, r);
+        efi_char16_puts(L"\x2502");
+        conout->set_cursor(conout, x+w-1, r);
+        efi_char16_puts(L"\x2502");
+    }
+
+    conout->set_cursor(conout, x, y+h-1);
+    line[0] = 0x2514;
+    for (uint16_t c = 1; c < w-1; ++c) {
+        line[c] = 0x2500;
+    }
+    line[w-1] = 0x2518;
+    efi_char16_puts(line);
+}
 
 
 /*
@@ -58,7 +61,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     uint64_t console_columns = 80;
     uint64_t console_rows = 25;
     uint64_t console_mode = 0;
-    for (uint64_t i = 1; i  < 16; ++i) {
+    for (uint64_t i = 1; i  < 32; ++i) {
         uint64_t columns = 0;
         uint64_t rows = 0;
 
@@ -87,12 +90,12 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
     console_out->clear_screen(console_out);
 
-    //draw_box(2, 4, console_columns - 4, console_rows - 6);
-
     console_out->set_cursor(console_out, 0, 0);
 
-    char buf[65];
+    char buf[66];
     efi_puts("UEFI revision: ");
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_YELLOW, EFI_CONSOLE_BLACK));
     u64tostr(uefi_major, buf, 0);
     efi_puts(buf);
     efi_puts(".");
@@ -102,24 +105,79 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     u64tostr(uefi_tertiary, buf, 0);
     efi_puts(buf);
     efi_puts("\n");
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
 
     efi_puts("Firmware vendor: ");
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_MAGENTA, EFI_CONSOLE_BLACK));
     efi_char16_puts((const uint16_t*) systab->fw_vendor);
     efi_puts("\n");
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
 
     efi_puts("Firmware revision: ");
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_CYAN, EFI_CONSOLE_BLACK));
     u64tostr(fwrev_major, buf, 0);
     efi_puts(buf);
     efi_puts(".");
     u64tostr(fwrev_minor, buf, 0);
     efi_puts(buf);
     efi_puts("\n");
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
 
-    u64tostr((1ULL<<64ULL)-1, buf, 36);
-    //u64tostr(0xdeadbeef, buf, 36);
-    //u64tostr(123456789, buf, 36);
-    //u64tostr(11, buf, 10);
-    efi_puts(buf);
+    draw_box(2, 4, console_columns - 6, console_rows - 6);
+    console_out->set_cursor(console_out, 3, 5);
+
+    uint64_t numbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                          10, 11, 12, 13, 14, 15, 16,
+                          35, 36, 37,
+                          UINT64_MAX - 1, UINT64_MAX,
+                          0xdeadbeef, 123456789, 255, 65535, 
+                          4095, 4096};
+    int bases[] = {10, 16, 8, 2, 36};
+    int widths[] = {21, 17, 23, 65, 15};
+
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_WHITE, EFI_CONSOLE_BLACK));
+    for (size_t col = 0; col < array_size(bases); ++col) {
+        uint64_t x = 0;
+        for (size_t j = 0; j < col; ++j) {
+            x += widths[j];
+        }
+        console_out->set_cursor(console_out, 4 + x, 5);
+        efi_puts("base-");
+        u64tostr(bases[col], buf, 10);
+        efi_puts(buf);
+
+        console_out->set_cursor(console_out, 4 + x, 6);
+        for (uint64_t l = 0; l < widths[col] - 1; ++l) {
+            buf[l] = '-';
+        }
+        buf[widths[col]-1] = '\0';
+        efi_puts(buf);
+    }
+    
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
+    for (size_t i = 0; i < array_size(numbers); ++i) {
+        uint64_t number = numbers[i];
+
+        for (size_t col = 0; col < array_size(bases); ++col) {
+            uint64_t x = 0;
+            for (size_t j = 0; j < col; ++j) {
+                x += widths[j];
+            }
+
+            console_out->set_cursor(console_out, 4 + x, 7 + i);
+
+            int base = bases[col];
+            u64tostr(number, buf, base);
+            efi_puts(buf);
+        }
+    }
 
     // TODO: set up boot services and stuff here
 

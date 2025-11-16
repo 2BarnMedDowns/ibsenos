@@ -95,8 +95,6 @@ struct efi_system_table
 
 #define EFI_SYSTEM_TABLE_SIGNATURE ((uint64_t) 0x5453595320494249ULL)
 
-extern const struct efi_system_table *ST;
-
 
 /*
  * EFI boot services table

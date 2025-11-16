@@ -4,6 +4,9 @@
 #include <cdefs.h>
 
 
+extern const struct efi_system_table *ST;
+
+
 /*
  * Convert UF8-8 octets to UTF-32
  * Blatently ripped off from the Linux kernel's UEFI stub

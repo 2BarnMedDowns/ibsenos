@@ -5,13 +5,12 @@
  * Latest UEFI specification: https://uefi.org/specs/UEFI/2.11/index.html
  */
 
-#include "compilerattrs.h"
-#include <stddef.h>
+#include <compiler_attributes.h>
 #include <stdint.h>
 
 
 /* Some EFI types */
-typedef unsigned int efi_status_t;
+typedef uint64_t efi_status_t;
 //typedef uint16_t efi_char16_t;
 //typedef uint8_t efi_bool_t;
 //typedef uint64_t efi_uintn_t;
@@ -29,20 +28,20 @@ typedef unsigned int efi_status_t;
  * Some EFI status/error codes.
  */
 #define EFI_SUCCESS		        0
-#define EFI_LOAD_ERROR		    ( 1 | (1UL << 63))
-#define EFI_INVALID_PARAMETER   ( 2 | (1UL << 63))
-#define EFI_UNSUPPORTED         ( 3 | (1UL << 63))
-#define EFI_BAD_BUFFER_SIZE     ( 4 | (1UL << 63))
-#define EFI_BUFFER_TOO_SMALL    ( 5 | (1UL << 63))
-#define EFI_NOT_READY           ( 6 | (1UL << 63))
-#define EFI_DEVICE_ERROR        ( 7 | (1UL << 63))
-#define EFI_WRITE_PROTECTED     ( 8 | (1UL << 63))
-#define EFI_OUT_OF_RESOURCES    ( 9 | (1UL << 63))
-#define EFI_NOT_FOUND           (14 | (1UL << 63))
-#define EFI_ACCESS_DENIED       (15 | (1UL << 63))
-#define EFI_TIMEOUT             (18 | (1UL << 63))
-#define EFI_ABORTED             (21 | (1UL << 63))
-#define EFI_SECURITY_VIOLATION  (26 | (1UL << 63))
+#define EFI_LOAD_ERROR		    ( 1 | (1ULL << 63))
+#define EFI_INVALID_PARAMETER   ( 2 | (1ULL << 63))
+#define EFI_UNSUPPORTED         ( 3 | (1ULL << 63))
+#define EFI_BAD_BUFFER_SIZE     ( 4 | (1ULL << 63))
+#define EFI_BUFFER_TOO_SMALL    ( 5 | (1ULL << 63))
+#define EFI_NOT_READY           ( 6 | (1ULL << 63))
+#define EFI_DEVICE_ERROR        ( 7 | (1ULL << 63))
+#define EFI_WRITE_PROTECTED     ( 8 | (1ULL << 63))
+#define EFI_OUT_OF_RESOURCES    ( 9 | (1ULL << 63))
+#define EFI_NOT_FOUND           (14 | (1ULL << 63))
+#define EFI_ACCESS_DENIED       (15 | (1ULL << 63))
+#define EFI_TIMEOUT             (18 | (1ULL << 63))
+#define EFI_ABORTED             (21 | (1ULL << 63))
+#define EFI_SECURITY_VIOLATION  (26 | (1ULL << 63))
 
 
 typedef struct __aligned(__alignof__(uint32_t)) {
@@ -73,52 +72,6 @@ typedef struct efi_table_header
 
 
 /*
- * Forward declaration of an EFI simple text output protocol type.
- */
-typedef struct efi_simple_text_output_protocol efi_simple_text_output_protocol_t;
-
-
-#define EFI_CONSOLE_FG(x) ((x) & 0xf)
-#define EFI_CONSOLE_BG(x) (((x) & 0xf) << 4)
-
-
-/*
- * EFI simple text output protocol
- *
- * See UEFI 2.11 spec, 21.4.1
- * https://uefi.org/specs/UEFI/2.11/12_Protocols_Console_Support.html#efi-simple-text-output-protocol
- */
-struct efi_simple_text_output_protocol
-{
-    efi_status_t (__efiapi *reset)(efi_simple_text_output_protocol_t*, 
-                                   uint8_t extended_verification);
-
-    efi_status_t (__efiapi *output_string)(efi_simple_text_output_protocol_t*,
-                                           uint16_t *string);
-    
-    efi_status_t (__efiapi *test_string)(efi_simple_text_output_protocol_t*,
-                                         uint16_t *string);
-    
-    efi_status_t (__efiapi *query_mode)(efi_simple_text_output_protocol_t*,
-                                        uint64_t mode_number,
-                                        uint64_t *columns,
-                                        uint64_t *rows);
-
-    efi_status_t (__efiapi *set_mode)(efi_simple_text_output_protocol_t*,
-                                      uint64_t mode);
-
-    efi_status_t (__efiapi *set_attr)(efi_simple_text_output_protocol_t*,
-                                      uint64_t attribute);
-
-    efi_status_t (__efiapi *clear_screen)(efi_simple_text_output_protocol_t*);
-
-    efi_status_t (__efiapi *set_cursor)(efi_simple_text_output_protocol_t*,
-                                        uint64_t column,
-                                        uint64_t row);
-};
-
-
-/*
  * UEFI 2.11 spec, 4.3
  * https://uefi.org/specs/UEFI/2.11/04_EFI_System_Table.html#efi-system-table-1
  */
@@ -128,10 +81,10 @@ struct efi_system_table
     uint64_t fw_vendor; // physical address of CHAR16 vendor string
     uint32_t fw_revision;
     uint32_t pad1;      // manual alignment to 64-bit
-    uint64_t con_in_handle;
-    uint64_t con_in;
-    uint64_t con_out_handle;
-    uint64_t con_out;
+    uint64_t console_in_handle;
+    uint64_t console_in;
+    uint64_t console_out_handle;
+    uint64_t console_out;
     uint64_t stderr_handle;
     uint64_t stder;
     uint64_t rt;

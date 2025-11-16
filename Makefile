@@ -12,7 +12,7 @@ LD := $(CC)
 AS := $(CC)
 
 WARNINGS := all extra shadow unused error-implicit-function-declaration
-CFLAGS := -std=gnu99 -ffreestanding -nostartfiles -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
+CFLAGS := -std=gnu11 -ffreestanding -nostartfiles -nostdinc -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
 CFLAGS += $(addprefix -W,$(WARNINGS))
 CFLAGS += -Iinclude/
 LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 

@@ -1,0 +1,67 @@
+#ifndef __IBSENOS_UEFIBOOT_CONSOLE_H__
+#define __IBSENOS_UEFIBOOT_CONSOLE_H__
+
+#include <efi.h>
+
+#define EFI_CONSOLE_BLACK           0x00
+#define EFI_CONSOLE_BLUE            0x01
+#define EFI_CONSOLE_GREEN           0x02
+#define EFI_CONSOLE_CYAN            0x03
+#define EFI_CONSOLE_RED             0x04
+#define EFI_CONSOLE_MAGENTA         0x05
+#define EFI_CONSOLE_BROWN           0x06
+#define EFI_CONSOLE_GRAY            0x07
+#define EFI_CONSOLE_DARKGRAY        0x08
+#define EFI_CONSOLE_BRIGHTBLUE      0x09
+#define EFI_CONSOLE_BRIGHTGREEN     0x0a
+#define EFI_CONSOLE_BRIGHTCYAN      0x0b
+#define EFI_CONSOLE_BRIGHTRED       0x0c
+#define EFI_CONSOLE_BRIGHTMAGENTA   0x0d
+#define EFI_CONSOLE_YELLOW          0x0e
+#define EFI_CONSOLE_WHITE           0x0f
+
+
+#define EFI_CONSOLE_COLOR(foreground, background) \
+    ( ((foreground) & 0xf) | (((background) & 0x7) << 4) )
+
+
+/*
+ * EFI simple text output protocol
+ *
+ * See UEFI 2.11 spec, 21.4.1
+ * https://uefi.org/specs/UEFI/2.11/12_Protocols_Console_Support.html#efi-simple-text-output-protocol
+ */
+struct efi_simple_text_output_protocol
+{
+    efi_status_t (__efiapi *reset)(struct efi_simple_text_output_protocol*, 
+                                   uint8_t extended_verification);
+
+    efi_status_t (__efiapi *output_string)(struct efi_simple_text_output_protocol*,
+                                           uint16_t *string);
+    
+    efi_status_t (__efiapi *test_string)(struct efi_simple_text_output_protocol*,
+                                         uint16_t *string);
+    
+    efi_status_t (__efiapi *query_mode)(struct efi_simple_text_output_protocol*,
+                                        uint64_t mode_number,
+                                        uint64_t *columns,
+                                        uint64_t *rows);
+
+    efi_status_t (__efiapi *set_mode)(struct efi_simple_text_output_protocol*,
+                                      uint64_t mode);
+
+    efi_status_t (__efiapi *set_attribute)(struct efi_simple_text_output_protocol*,
+                                           uint64_t attribute);
+
+    efi_status_t (__efiapi *clear_screen)(struct efi_simple_text_output_protocol*);
+
+    efi_status_t (__efiapi *set_cursor)(struct efi_simple_text_output_protocol*,
+                                        uint64_t column,
+                                        uint64_t row);
+
+    efi_status_t (__efiapi *enable_cursor)(struct efi_simple_text_output_protocol*,
+                                           uint8_t visible);
+};
+
+
+#endif

@@ -1,44 +1,118 @@
 #include <efi.h>
+#include "efi_console.h"
+#include <stdint.h>
 
 
-static struct efi_system_table *ST = NULL;
-
-
-static void set_color(uint8_t fg, uint8_t bg)
-{
-    efi_simple_text_output_protocol_t *proto =
-        (efi_simple_text_output_protocol_t*) ST->con_out;
-    proto->set_attr(proto, EFI_CONSOLE_FG(fg) | EFI_CONSOLE_BG(bg));
-}
+struct efi_system_table *ST = NULL;
+struct efi_simple_text_output_protocol *console_out;
 
 
 static void print(uint16_t *str)
 {
-    efi_simple_text_output_protocol_t *proto = 
-        (efi_simple_text_output_protocol_t*) ST->con_out;
-    proto->output_string(proto, str);
+    console_out->output_string(console_out, str);
 }
 
 
-static void print_uint(uint64_t n)
+static void printh(uint64_t n)
 {
-    uint16_t buffer[21] = {0};
-    uint8_t len = 21;
-
-    efi_simple_text_output_protocol_t *proto = 
-        (efi_simple_text_output_protocol_t*) ST->con_out;
+    uint16_t buffer[17] = {0};
+    uint8_t len = 17;
 
     buffer[len--] = 0;
     if (n == 0) {
         buffer[len--] = L'0';
     } else {
         while (n > 0) {
-            buffer[len--] = L'0' + (n % 10);
+            buffer[len--] = L'0' + (n & 0xf);
+            n >>= 4;
+        }
+    }
+
+    console_out->output_string(console_out, &buffer[len+1]);
+}
+
+
+static uint16_t strnlen(uint16_t *buf, uint8_t maxlen)
+{
+    uint16_t n;
+    for (n = 0; n < maxlen && buf[n] != 0; ++n);
+    return n;
+}
+
+
+static uint16_t strncpy(uint16_t *dst, uint16_t *src, uint8_t maxlen)
+{
+    uint16_t n;
+    for (n = 0; n < maxlen && src[n] != 0; ++n) {
+        dst[n] = src[n];
+    }
+    if (n < maxlen) {
+        dst[n] = 0;
+    }
+    return n;
+}
+
+
+static uint16_t snprintu(uint16_t *buf, uint8_t len, uint64_t n)
+{
+    uint16_t buffer[21] = {0};
+    uint8_t length = 21;
+
+    uint16_t i = 0;
+
+    buffer[length--] = 0;
+    if (n == 0) {
+        buffer[length--] = L'0';
+        ++i;
+    } else {
+        while (n > 0) {
+            buffer[length--] = L'0' + (n % 10);
+            ++i;
             n /= 10;
         }
     }
 
-    proto->output_string(proto, &buffer[len+1]);
+    strncpy(buf, &buffer[length+1], len);
+
+    return i;
+}
+
+
+static void printu(uint64_t n)
+{
+    uint16_t buffer[21] = {0};
+    snprintu(buffer, 21, n);
+    console_out->output_string(console_out, buffer);
+}
+
+
+static void draw_box(uint64_t x, uint64_t y, uint64_t w, uint64_t h)
+{
+    uint16_t line[w];
+    line[w-1] = 0;
+
+    console_out->set_cursor(console_out, x, y);
+    line[0] = 0x250c;
+    for (uint16_t c = 1; c < w-1; ++c) {
+        line[c] = 0x2500;
+    }
+    line[w-1] = 0x2510;
+    print(line);
+
+    for (uint16_t r = y+1; r < y+h-1; ++r) {
+        console_out->set_cursor(console_out, x, r);
+        print(L"\x2502");
+        console_out->set_cursor(console_out, x+w-1, r);
+        print(L"\x2502");
+    }
+
+    console_out->set_cursor(console_out, x, y+h-1);
+    line[0] = 0x2514;
+    for (uint16_t c = 1; c < w-1; ++c) {
+        line[c] = 0x2500;
+    }
+    line[w-1] = 0x2518;
+    print(line);
 }
 
 
@@ -48,6 +122,7 @@ static void print_uint(uint64_t n)
  */
 efi_status_t __efiapi uefi_init(void *, struct efi_system_table *systab)
 {
+    efi_status_t status;
     ST = NULL;
 
     if (systab->hdr.signature != EFI_SYSTEM_TABLE_SIGNATURE) {
@@ -55,24 +130,61 @@ efi_status_t __efiapi uefi_init(void *, struct efi_system_table *systab)
     }
 
     ST = systab;
+    console_out = (struct efi_simple_text_output_protocol*) systab->console_out;
+
+    uint64_t console_columns = 80;
+    uint64_t console_rows = 25;
+    uint64_t console_mode = 0;
+    for (uint64_t i = 1; i  < 16; ++i) {
+        uint64_t columns = 0;
+        uint64_t rows = 0;
+
+        status = console_out->query_mode(console_out, i, &columns, &rows);
+        if (status == EFI_SUCCESS && columns >= console_columns && rows >= console_rows) {
+            console_mode = i;
+            console_columns = columns;
+            console_rows = rows;
+        }
+    }
+
+    status = console_out->set_mode(console_out, console_mode);
+    if (status != EFI_SUCCESS) {
+        return EFI_LOAD_ERROR;
+    }
+
+    uint32_t uefirev = systab->hdr.revision;
+    uint32_t uefi_major = (uefirev >> 16);
+    uint32_t uefi_minor = (uefirev & 0xffff) / 10;
+    uint32_t uefi_tertiary = uefirev % 10;
 
     uint32_t fwrev_major = (systab->fw_revision >> 16);
-    uint32_t fwrev_minor = (systab->fw_revision & 0xffff) / 10;
-    uint32_t fwrev_tertiary = systab->fw_revision % 10;
+    uint32_t fwrev_minor = (systab->fw_revision & 0xffff);
 
-    set_color(0xf, 0x1);
+    console_out->set_attribute(console_out, 
+            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLUE));
+    console_out->clear_screen(console_out);
 
-    print(L"UEFI firmware: ");
+    draw_box(2, 4, console_columns - 4, console_rows - 6);
+
+    console_out->set_cursor(console_out, 0, 0);
+
+    print(L"UEFI revision: ");
+    printu(uefi_major);
+    print(L".");
+    printu(uefi_minor);
+    print(L".");
+    printu(uefi_tertiary);
+    print(L"\r\n");
+
+    print(L"Firmware vendor: ");
     print((uint16_t*) systab->fw_vendor);
-    print(L" (revision ");
-    print_uint(fwrev_major);
-    print(L".");
-    print_uint(fwrev_minor);
-    print(L".");
-    print_uint(fwrev_tertiary);
-    print(L")\r\n");
+    print(L"\r\n");
 
-    //print(L"\x2588 \x250c \x2514 \x2591");
+    print(L"Firmware revision: ");
+    printu(fwrev_major);
+    print(L".");
+    printu(fwrev_minor);
+    print(L"\r\n");
 
     // TODO: set up boot services and stuff here
 

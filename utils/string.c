@@ -86,8 +86,7 @@ static int naive_convert(uint64_t value, char *buffer, int base)
 }
 
 
-static int bitwise_convert(uint64_t value, char *buffer, 
-                           int bits)
+static int bitwise_convert(uint64_t value, char *buffer, int bits)
 {
     int digits = 0;
     int mask = (1 << bits) - 1;
@@ -104,8 +103,6 @@ static int bitwise_convert(uint64_t value, char *buffer,
             }
             buffer[digits++] = '0' + current;
         }
-
-
     } while (pos >= 0);
 
     buffer[digits] = '\0';

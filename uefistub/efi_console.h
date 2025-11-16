@@ -1,7 +1,12 @@
-#ifndef __IBSENOS_UEFIBOOT_CONSOLE_H__
-#define __IBSENOS_UEFIBOOT_CONSOLE_H__
+#ifndef __IBSENOS_UEFISTUB_CONSOLE_H__
+#define __IBSENOS_UEFISTUB_CONSOLE_H__
 
-#include <efi.h>
+/*
+ * Implemented following the UEFI 2.11 specification
+ * See: https://uefi.org/specs/UEFI/2.11/index.html
+ */
+
+#include "efi.h"
 
 #define EFI_CONSOLE_BLACK           0x00
 #define EFI_CONSOLE_BLUE            0x01
@@ -27,41 +32,51 @@
 
 /*
  * EFI simple text output protocol
- *
- * See UEFI 2.11 spec, 21.4.1
- * https://uefi.org/specs/UEFI/2.11/12_Protocols_Console_Support.html#efi-simple-text-output-protocol
+ * See section 12.4.1
  */
 struct efi_simple_text_output_protocol
 {
-    efi_status_t (__efiapi *reset)(struct efi_simple_text_output_protocol*, 
+    efi_status_t (__efiapi *reset)(const struct efi_simple_text_output_protocol*, 
                                    uint8_t extended_verification);
 
-    efi_status_t (__efiapi *output_string)(struct efi_simple_text_output_protocol*,
-                                           uint16_t *string);
+    efi_status_t (__efiapi *output_string)(const struct efi_simple_text_output_protocol*,
+                                           const uint16_t *string);
     
-    efi_status_t (__efiapi *test_string)(struct efi_simple_text_output_protocol*,
+    efi_status_t (__efiapi *test_string)(const struct efi_simple_text_output_protocol*,
                                          uint16_t *string);
     
-    efi_status_t (__efiapi *query_mode)(struct efi_simple_text_output_protocol*,
+    efi_status_t (__efiapi *query_mode)(const struct efi_simple_text_output_protocol*,
                                         uint64_t mode_number,
                                         uint64_t *columns,
                                         uint64_t *rows);
 
-    efi_status_t (__efiapi *set_mode)(struct efi_simple_text_output_protocol*,
+    efi_status_t (__efiapi *set_mode)(const struct efi_simple_text_output_protocol*,
                                       uint64_t mode);
 
-    efi_status_t (__efiapi *set_attribute)(struct efi_simple_text_output_protocol*,
+    efi_status_t (__efiapi *set_attribute)(const struct efi_simple_text_output_protocol*,
                                            uint64_t attribute);
 
-    efi_status_t (__efiapi *clear_screen)(struct efi_simple_text_output_protocol*);
+    efi_status_t (__efiapi *clear_screen)(const struct efi_simple_text_output_protocol*);
 
-    efi_status_t (__efiapi *set_cursor)(struct efi_simple_text_output_protocol*,
+    efi_status_t (__efiapi *set_cursor)(const struct efi_simple_text_output_protocol*,
                                         uint64_t column,
                                         uint64_t row);
 
-    efi_status_t (__efiapi *enable_cursor)(struct efi_simple_text_output_protocol*,
+    efi_status_t (__efiapi *enable_cursor)(const struct efi_simple_text_output_protocol*,
                                            uint8_t visible);
 };
+
+
+/*
+ * Write wide-char string to the console.
+ */
+void efi_char16_puts(const uint16_t *str);
+
+
+/*
+ * Write an UTF-8 encoded string to the console.
+ */
+void efi_puts(const char *str);
 
 
 #endif

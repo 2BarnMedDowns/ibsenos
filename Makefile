@@ -18,10 +18,10 @@ CFLAGS += -Iinclude/
 LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
 
 
-# Usage: $(call target,<target name>,<build name>,<entry function>,<space separated list of source files>)
+# Usage: $(call target,<target name>,<build name>,<space separated list of source files>,[entry point])
 define target
 $1-build = $$(BUILD_DIR)/$2
-$1-srcs = $4
+$1-srcs ?= $3
 $1-objs = $$(addprefix $$(BUILD_DIR)/,$$(patsubst %.c,%.o,$$(filter-out %.h,$$($1-srcs))))
 
 .PHONY: $1 $1-clean
@@ -34,7 +34,7 @@ $1-clean:
 
 $$($1-build): $$($1-objs)
 	@mkdir -p $$(dir $$@)
-	$$(LD) $$(LDFLAGS) -e $3 -o $$@ $$^
+	$$(LD) $$(LDFLAGS) $(if $4,-e $4) -o $$@ $$^
 
 $$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs))
 	@mkdir -p $$(dir $$@)
@@ -48,7 +48,7 @@ endef
 all: iso
 
 # Boot loader target
-$(eval $(call target,bootloader,BOOTX64.EFI,uefi_init,uefiboot/init.c include/efi.h))
+$(eval $(call target,bootloader,BOOTX64.EFI,utils/string.c uefistub/init.c uefistub/console.c uefistub/efi.h uefistub/efi_console.h,uefi_entry))
 
 
 clean: $(TARGETS:%=%-clean)

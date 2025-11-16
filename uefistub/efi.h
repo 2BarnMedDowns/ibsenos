@@ -1,21 +1,19 @@
-#ifndef __EFI_H__
-#define __EFI_H__
+#ifndef __IBSENOS_UEFISTUB_EFI_H__
+#define __IBSENOS_UEFISTUB_EFI_H__
 
 /*
- * Latest UEFI specification: https://uefi.org/specs/UEFI/2.11/index.html
+ * Implemented following the UEFI 2.11 specification
+ * See: https://uefi.org/specs/UEFI/2.11/index.html
  */
 
-#include <compiler_attributes.h>
-#include <stdint.h>
+#include <compiler.h>
+#include <cdefs.h>
+#include <inttypes.h>
 
 
 /* Some EFI types */
 typedef uint64_t efi_status_t;
-//typedef uint16_t efi_char16_t;
-//typedef uint8_t efi_bool_t;
-//typedef uint64_t efi_uintn_t;
-//typedef uint64_t efi_phys_addr_t;
-//typedef void * efi_handle_t;
+typedef void * efi_handle_t;
 
 
 /*
@@ -56,45 +54,60 @@ typedef struct __aligned(__alignof__(uint32_t)) {
 
 
 /*
- * Common EFI table header (4.2.1 in spec)
+ * Common EFI table header.
  * Precedes all the standard EFI table types.
- *
- * https://uefi.org/specs/UEFI/2.11/04_EFI_System_Table.html#efi-table-header
+ * See section 4.2.1
  */
-typedef struct efi_table_header
+struct efi_table_hdr
 {
     uint64_t signature;
-    uint32_t revision;
+    uint32_t revision;      // revision is in (major).(minor upper).(minor lower) format
     uint32_t header_size;
     uint32_t crc32;
     uint32_t reserved;
-} efi_table_hdr_t;
+};
 
 
 /*
- * UEFI 2.11 spec, 4.3
- * https://uefi.org/specs/UEFI/2.11/04_EFI_System_Table.html#efi-system-table-1
+ * EFI system table.
+ * Contains pointers to the runtime and boot services
+ * tables, as well as simple console protocols.
+ * See section 4.3.1
  */
 struct efi_system_table
 {
-    efi_table_hdr_t hdr;
-    uint64_t fw_vendor; // physical address of CHAR16 vendor string
+    struct efi_table_hdr hdr;
+    uint64_t fw_vendor;     // physical address of CHAR16 vendor string
     uint32_t fw_revision;
-    uint32_t pad1;      // manual alignment to 64-bit
+    uint32_t pad1;          // manual alignment to 64-bit
     uint64_t console_in_handle;
-    uint64_t console_in;
+    uint64_t console_in;    // physical address to console input protocol
     uint64_t console_out_handle;
-    uint64_t console_out;
+    uint64_t console_out;   // physical address to console output protocol
     uint64_t stderr_handle;
-    uint64_t stder;
-    uint64_t rt;
-    uint64_t bt;
-    uint32_t num_tables;
-    uint32_t pad2;      // manual alignment to 64-bit
-    uint64_t tables;
+    uint64_t stder;         // stderr is not really used
+    uint64_t rt;            // runtime services
+    uint64_t bt;            // boot services
+    uint32_t num_tables;    // number of configuration tables
+    uint32_t pad2;          // manual alignment to 64-bit
+    uint64_t tables;        // physical address to configuration tables
 };
 
 #define EFI_SYSTEM_TABLE_SIGNATURE ((uint64_t) 0x5453595320494249ULL)
+
+extern const struct efi_system_table *ST;
+
+
+/*
+ * EFI boot services table
+ * Contains pointers to all the boot services.
+ * See section 4.4
+ */
+struct efi_boot_services
+{
+    struct efi_table_hdr hdr;
+};
+
 
 
 #endif

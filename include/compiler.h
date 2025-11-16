@@ -1,5 +1,12 @@
-#ifndef __IBSENOS_COMPILER_ATTRIBUTES_H__
-#define __IBSENOS_COMPILER_ATTRIBUTES_H__
+/*
+ * Compiler hints, attributes and type stuff.
+ */
+#ifndef __IBSENOS_COMPILER_H__
+#define __IBSENOS_COMPILER_H__
+
+// TODO: check if gcc?
+
+#define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
 
 
 #define __aligned(x) __attribute__((aligned(x)))
@@ -31,7 +38,12 @@
 
 
 #define fallthrough __attribute__((__fallthrough__))
-//#define do {} while (0) // fallthrough 
+
+
+/* &a[0] degrades to a pointer, a different type from an array */
+#define __is_array(a) (!__same_type((a), &(a)[0]))
+
+#define __must_be_array(a) ((int)sizeof(struct {_Static_assert((__is_array(a)), "must be array");}))
 
 
 #endif

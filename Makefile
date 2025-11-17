@@ -1,6 +1,12 @@
 PROJECT := ibsenos
 
-OVMF_PATH ?= /usr/share/ovmf/OVMF.fd
+
+ifneq (,$(wildcard /etc/redhat-release))
+	OVMF_PATH ?= /usr/share/OVMF/OVMF_CODE.fd
+else
+	OVMF_PATH ?= /usr/share/ovmf/OVMF.fd
+endif
+
 
 ARCH_TARGET ?= x86_64
 ARCH_HOSTED ?= w64

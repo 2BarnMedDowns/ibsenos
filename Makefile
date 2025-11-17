@@ -1,6 +1,6 @@
 PROJECT := ibsenos
 
-OVMF_PATH ?= /usr/share/OVMF/OVMF_CODE.fd 
+OVMF_PATH ?= /usr/share/ovmf/OVMF.fd
 
 ARCH_TARGET ?= x86_64
 ARCH_HOSTED ?= w64

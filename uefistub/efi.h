@@ -10,6 +10,8 @@
 #include <cdefs.h>
 #include <inttypes.h>
 
+#include "efi_boot_services.h"
+
 
 /* Some EFI types */
 typedef uint64_t efi_status_t;
@@ -111,12 +113,12 @@ struct efi_boot_services
 
     //
     // Task Priority Services
-    void*        RaiseTPL;       // EFI 1.0+
-    void*        RestoreTPL;     // EFI 1.0+
+    EFI_RAISE_TPL           raise_tpl;       // EFI 1.0+
+    EFI_RESTORE_TPL         restore_tpl;     // EFI 1.0+
 
     //
     // Memory Services
-    void*        AllocatePages;  // EFI 1.0+
+    EFI_ALLOCATE_PAGES      allocate_pages;  // EFI 1.0+
     void*        FreePages;      // EFI 1.0+
     void*        GetMemoryMap;   // EFI 1.0+
     void*        AllocatePool;   // EFI 1.0+

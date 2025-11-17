@@ -1,7 +1,9 @@
 #include "efi_console.h"
-#include "efi.h"
+#include <efi.h>
+#include <efistub.h>
 #include <inttypes.h>
 #include <cdefs.h>
+#include <efistub.h>
 
 
 extern const struct efi_system_table *ST;

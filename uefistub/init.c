@@ -1,4 +1,5 @@
-#include "efi.h"
+#include <efi.h>
+#include <efistub.h>
 #include "efi_console.h"
 #include <inttypes.h>
 #include <string.h>

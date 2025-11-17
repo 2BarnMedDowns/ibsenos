@@ -1,5 +1,5 @@
-#ifndef __IBSENOS_UEFISTUB_EFI_H__
-#define __IBSENOS_UEFISTUB_EFI_H__
+#ifndef __IBSENOS_EFI_H__
+#define __IBSENOS_EFI_H__
 
 /*
  * Implemented following the UEFI 2.11 specification
@@ -85,7 +85,7 @@ struct efi_system_table
     uint64_t console_out_handle;
     uint64_t console_out;   // physical address to console output protocol
     uint64_t stderr_handle;
-    uint64_t stder;         // stderr is not really used
+    uint64_t stderr;        // stderr is not really used
     uint64_t rt;            // runtime services
     uint64_t bt;            // boot services
     uint32_t num_tables;    // number of configuration tables
@@ -96,72 +96,120 @@ struct efi_system_table
 #define EFI_SYSTEM_TABLE_SIGNATURE ((uint64_t) 0x5453595320494249ULL)
 
 
+/* 
+ * EFI task priority levels
+ */
+#define EFI_TPL_APPLICATION	4
+#define EFI_TPL_CALLBACK	8
+#define EFI_TPL_NOTIFY		16
+#define EFI_TPL_HIGH_LEVEL	31
+
+
+/*
+ * EFI allocation types
+ */
+enum efi_allocate_type 
+{
+    EFI_ALLOCATE_ANY_PAGES = 0,
+    EFI_ALLOCATE_MAX_ADDRESS = 1,
+    EFI_ALLOCATE_ADDRESS = 2,
+    EFI_MAX_ALLOCATE_TYPE
+ };
+
+
+/* 
+ * EFI memory types
+ * We're paranoid, so we set the values explicitly,
+ * even though enums should start at 0.
+ */
+enum efi_memory_type 
+{
+    EFI_RESERVED_MEMORY_TYPE = 0,
+    EFI_LOADER_CODE = 1,
+    EFI_LOADER_DATA = 2,
+    EFI_BOOT_SERVICES_CODE = 3,
+    EFI_BOOT_SERVICES_DATA = 4,
+    EFI_RUNTIME_SERVICES_CODE = 5,
+    EFI_RUNTIME_SERVICES_DATA = 6,
+    EFI_CONVENTIONAL_MEMORY = 7,
+    EFI_UNUSABLE_MEMORY = 8,
+    EFI_ACPI_RECLAIM_MEMORY = 9,
+    EFI_ACPI_MEMORY_NVS = 10,
+    EFI_MEMORY_MAPPED_IO = 11,
+    EFI_MEMORY_MAPPED_IO_PORT_SPACE = 12,
+    EFI_PAL_CODE = 13,
+    EFI_PERSISTENT_MEMORY = 14,
+    EFI_UNACCEPTED_MEMORY_TYPE = 15,
+    EFI_MAX_MEMORY_TYPE
+};
+
+
+/* Memory attribute values */
+#define EFI_MEMORY_UC               (1ULL <<  0)    /* uncached */
+#define EFI_MEMORY_WC               (1ULL <<  1)    /* write-coalescing */
+#define EFI_MEMORY_WT               (1ULL <<  2)    /* write-through */
+#define EFI_MEMORY_WB               (1ULL <<  3)    /* write-back */
+#define EFI_MEMORY_UCE              (1ULL <<  4)    /* uncached, exported */
+#define EFI_MEMORY_WP               (1ULL << 12)    /* write protect */
+#define EFI_MEMORY_RP               (1ULL << 13)    /* read protect */
+#define EFI_MEMORY_XP               (1ULL << 14)    /* execute protect */
+#define EFI_MEMORY_NV               (1ULL << 15)    /* non-volatile */
+#define EFI_MEMORY_MORE_RELIABLE    (1ULL << 16)    /* higher reliability */
+#define EFI_MEMORY_RO               (1ULL << 17)    /* read-only */
+#define EFI_MEMORY_SP               (1ULL << 18)    /* soft reserved */
+#define EFI_MEMORY_CPU_CRYPTO       (1ULL << 19)    /* supports encryption */
+#define EFI_MEMORY_HOT_PLUGGABLE    (1ULL << 20)    /* supports unplugging at runtime */
+#define EFI_MEMORY_RUNTIME          (1ULL << 63)    /* memory range requires runtime mapping */
+
+
+/*
+ * EFI memory descriptor.
+ */
+struct efi_memory_desc
+{
+    enum efi_memory_type type;
+    uint32_t pad;
+    uint64_t phys_start;
+    uint64_t virt_start;
+    uint64_t num_pages;
+    uint64_t attribute;
+};
+
+#define EFI_MEMORY_DESCRIPTOR_VERSION 1
+
+#define EFI_PAGE_SHIFT 12
+#define EFI_PAGE_SIZE (1UL << EFI_PAGE_SHIFT)
+#define EFI_PAGES_MAX (UINT64_MAX >> EFI_PAGE_SHIFT)
+
+
 /*
  * EFI boot services table
  * Contains pointers to all the boot services.
  * See section 4.4
  */
-
-typedef enum {
-    AllocateAnyPages,
-    AllocateMaxAddress,
-    AllocateAddress,
-    MaxAllocateType
- } EFI_ALLOCATE_TYPE;
-
-typedef enum {
-    EfiReservedMemoryType,
-    EfiLoaderCode,
-    EfiLoaderData,
-    EfiBootServicesCode,
-    EfiBootServicesData,
-    EfiRuntimeServicesCode,
-    EfiRuntimeServicesData,
-    EfiConventionalMemory,
-    EfiUnusableMemory,
-    EfiACPIReclaimMemory,
-    EfiACPIMemoryNVS,
-    EfiMemoryMappedIO,
-    EfiMemoryMappedIOPortSpace,
-    EfiPalCode,
-    EfiPersistentMemory,
-    EfiUnacceptedMemoryType,
-    EfiMaxMemoryType
- } EFI_MEMORY_TYPE;
-
-typedef struct {
-    uint32_t type;
-    uint64_t physical_start;
-    uint64_t virtual_start;
-    uint64_t number_of_pages;
-    uint64_t attribute;
-} EFI_MEMORY_DESCRIPTOR;
-
 struct efi_boot_services
 {
     struct efi_table_hdr hdr;
 
-    //
     // Task Priority Services
     uint64_t (__efiapi *raise_tpl)(uint64_t new_tpl);
     void (__efiapi *restore_tpl)(uint64_t old_tpl);
 
-    //
     // Memory Services
-    efi_status_t (__efiapi *allocate_pages)(EFI_ALLOCATE_TYPE type,
-                                            EFI_MEMORY_TYPE memory_type,
+    efi_status_t (__efiapi *allocate_pages)(enum efi_allocate_type alloc_type,
+                                            enum efi_memory_type memory_type,
                                             uint64_t pages,
-                                            uint64_t memory);
+                                            uint64_t *phys_addr);
 
-    efi_status_t (__efiapi *free_pages)(uint64_t memory, uint64_t pages);
+    efi_status_t (__efiapi *free_pages)(uint64_t phys_addr, uint64_t pages);
 
-    efi_status_t (__efiapi *get_memory_map)(uint64_t memory_map_size,
-                                            EFI_MEMORY_TYPE memory_map,
-                                            uint64_t map_key,
-                                            uint64_t descriptor_size,
-                                            uint32_t descriptor_version);
+    efi_status_t (__efiapi *get_memory_map)(uint64_t *memory_map_size,
+                                            struct efi_memory_desc *memory_map,
+                                            uint64_t *map_key,
+                                            uint64_t *descriptor_size,
+                                            uint32_t *descriptor_version);
 
-    efi_status_t (__efiapi *allocate_pool)(EFI_MEMORY_TYPE pool_type, uint64_t size, void **buffer);
+    efi_status_t (__efiapi *allocate_pool)(enum efi_memory_type pool_type, uint64_t size, void **buffer);
     efi_status_t (__efiapi *free_pool)(void *memory);
 
     //
@@ -228,7 +276,5 @@ struct efi_boot_services
     void*        SetMem;         // EFI 1.1+
     void*        CreateEventEx;  // UEFI 2.0+
 };
-
-
 
 #endif

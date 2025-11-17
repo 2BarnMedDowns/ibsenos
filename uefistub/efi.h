@@ -13,7 +13,7 @@
 
 /* Some EFI types */
 typedef uint64_t efi_status_t;
-typedef size_t efi_tpl;
+typedef uint64_t efi_tpl; // EFI_TPL Task priority level. Type UINTN.
 typedef void * efi_handle_t;
 
 

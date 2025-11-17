@@ -57,7 +57,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     const struct efi_simple_text_output_protocol * console_out =
         (const struct efi_simple_text_output_protocol*) systab->console_out;
 
-    // Find console mode with largest rows * columns
+    // Find console mode with the largest rows * columns
     uint64_t console_columns = 80;
     uint64_t console_rows = 25;
     uint64_t console_mode = 0;
@@ -86,7 +86,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     uint32_t fwrev_major = (systab->fw_revision >> 16);
     uint32_t fwrev_minor = (systab->fw_revision & 0xffff);
 
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
     console_out->clear_screen(console_out);
 
@@ -94,7 +94,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
 
     char buf[66];
     efi_puts("UEFI revision: ");
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_YELLOW, EFI_CONSOLE_BLACK));
     u64tostr(uefi_major, buf, 0);
     efi_puts(buf);
@@ -105,19 +105,19 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     u64tostr(uefi_tertiary, buf, 0);
     efi_puts(buf);
     efi_puts("\n");
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
 
     efi_puts("Firmware vendor: ");
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_MAGENTA, EFI_CONSOLE_BLACK));
     efi_char16_puts((const uint16_t*) systab->fw_vendor);
     efi_puts("\n");
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
 
     efi_puts("Firmware revision: ");
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_CYAN, EFI_CONSOLE_BLACK));
     u64tostr(fwrev_major, buf, 0);
     efi_puts(buf);
@@ -125,7 +125,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     u64tostr(fwrev_minor, buf, 0);
     efi_puts(buf);
     efi_puts("\n");
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
 
     draw_box(2, 4, console_columns - 6, console_rows - 6);
@@ -135,12 +135,12 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
                           10, 11, 12, 13, 14, 15, 16,
                           35, 36, 37,
                           UINT64_MAX - 1, UINT64_MAX,
-                          0xdeadbeef, 123456789, 255, 65535, 
+                          0xdeadbeef, 123456789, 255, 65535,
                           4095, 4096};
     int bases[] = {10, 16, 8, 2, 36};
     int widths[] = {21, 17, 23, 65, 15};
 
-    console_out->set_attribute(console_out, 
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_WHITE, EFI_CONSOLE_BLACK));
     for (size_t col = 0; col < array_size(bases); ++col) {
         uint64_t x = 0;
@@ -153,14 +153,14 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
         efi_puts(buf);
 
         console_out->set_cursor(console_out, 4 + x, 6);
-        for (uint64_t l = 0; l < widths[col] - 1; ++l) {
+        for (int l = 0; l < widths[col] - 1; ++l) {
             buf[l] = '-';
         }
         buf[widths[col]-1] = '\0';
         efi_puts(buf);
     }
-    
-    console_out->set_attribute(console_out, 
+
+    console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
     for (size_t i = 0; i < array_size(numbers); ++i) {
         uint64_t number = numbers[i];
@@ -185,10 +185,10 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
 }
 
 //
-//static EFI_STATUS EFIAPI PrintLn(IN EFI_SYSTEM_TABLE * SysTbl, IN CHAR16 * String) 
+//static EFI_STATUS EFIAPI PrintLn(IN EFI_SYSTEM_TABLE * SysTbl, IN CHAR16 * String)
 //{
 //    EFI_STATUS Status;
-//   
+//
 //    Status = SysTbl->ConOut->OutputString(SysTbl->ConOut, String);
 //    if (EFI_ERROR(Status)) {
 //        return Status;

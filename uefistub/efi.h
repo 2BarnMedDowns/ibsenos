@@ -130,6 +130,14 @@ typedef enum {
     EfiMaxMemoryType
  } EFI_MEMORY_TYPE;
 
+typedef struct {
+    uint32_t type;
+    uint64_t physical_start;
+    uint64_t virtual_start;
+    uint64_t number_of_pages;
+    uint64_t attribute;
+} EFI_MEMORY_DESCRIPTOR;
+
 struct efi_boot_services
 {
     struct efi_table_hdr hdr;
@@ -148,9 +156,14 @@ struct efi_boot_services
 
     efi_status_t (__efiapi *free_pages)(uint64_t memory, uint64_t pages);
 
-    void*        GetMemoryMap;   // EFI 1.0+
-    void*        AllocatePool;   // EFI 1.0+
-    void*        FreePool;       // EFI 1.0+
+    efi_status_t (__efiapi *get_memory_map)(uint64_t memory_map_size,
+                                            EFI_MEMORY_TYPE memory_map,
+                                            uint64_t map_key,
+                                            uint64_t descriptor_size,
+                                            uint32_t descriptor_version);
+
+    efi_status_t (__efiapi *allocate_pool)(EFI_MEMORY_TYPE pool_type, uint64_t size, void **buffer);
+    efi_status_t (__efiapi *free_pool)(void *memory);
 
     //
     // Event & Timer Services

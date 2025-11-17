@@ -10,11 +10,10 @@
 #include <cdefs.h>
 #include <inttypes.h>
 
-#include "efi_boot_services.h"
-
 
 /* Some EFI types */
 typedef uint64_t efi_status_t;
+typedef size_t efi_tpl;
 typedef void * efi_handle_t;
 
 
@@ -103,23 +102,52 @@ struct efi_system_table
  * Contains pointers to all the boot services.
  * See section 4.4
  */
+
+typedef enum {
+    AllocateAnyPages,
+    AllocateMaxAddress,
+    AllocateAddress,
+    MaxAllocateType
+ } EFI_ALLOCATE_TYPE;
+
+typedef enum {
+    EfiReservedMemoryType,
+    EfiLoaderCode,
+    EfiLoaderData,
+    EfiBootServicesCode,
+    EfiBootServicesData,
+    EfiRuntimeServicesCode,
+    EfiRuntimeServicesData,
+    EfiConventionalMemory,
+    EfiUnusableMemory,
+    EfiACPIReclaimMemory,
+    EfiACPIMemoryNVS,
+    EfiMemoryMappedIO,
+    EfiMemoryMappedIOPortSpace,
+    EfiPalCode,
+    EfiPersistentMemory,
+    EfiUnacceptedMemoryType,
+    EfiMaxMemoryType
+ } EFI_MEMORY_TYPE;
+
 struct efi_boot_services
 {
     struct efi_table_hdr hdr;
 
-    // Copy all the function pointers from the spec
-    // They should _very much_ probably be typedef'ed beforehand to
-    // avoid casting at run-time. Also are we using snake_case or PascalCase?
-
     //
     // Task Priority Services
-    EFI_RAISE_TPL           raise_tpl;       // EFI 1.0+
-    EFI_RESTORE_TPL         restore_tpl;     // EFI 1.0+
+    efi_tpl (__efiapi *raise_tpl)(efi_tpl new_tpl);
+    void (__efiapi *restore_tpl)(efi_tpl old_tpl);
 
     //
     // Memory Services
-    EFI_ALLOCATE_PAGES      allocate_pages;  // EFI 1.0+
-    void*        FreePages;      // EFI 1.0+
+    efi_status_t (__efiapi *allocate_pages)(EFI_ALLOCATE_TYPE type,
+                                            EFI_MEMORY_TYPE memory_type,
+                                            uint64_t pages,
+                                            uint64_t memory);
+
+    efi_status_t (__efiapi *free_pages)(uint64_t memory, uint64_t pages);
+
     void*        GetMemoryMap;   // EFI 1.0+
     void*        AllocatePool;   // EFI 1.0+
     void*        FreePool;       // EFI 1.0+

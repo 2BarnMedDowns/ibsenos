@@ -266,6 +266,7 @@ size_t u64tostr(uint64_t value, char *str, int base)
             
         default:
             // Unsupported base
+            *str = '\0';
             return 0;
     }
 }

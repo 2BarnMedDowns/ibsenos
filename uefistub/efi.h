@@ -13,7 +13,6 @@
 
 /* Some EFI types */
 typedef uint64_t efi_status_t;
-typedef uint64_t efi_tpl; // EFI_TPL Task priority level. Type UINTN.
 typedef void * efi_handle_t;
 
 
@@ -144,8 +143,8 @@ struct efi_boot_services
 
     //
     // Task Priority Services
-    efi_tpl (__efiapi *raise_tpl)(efi_tpl new_tpl);
-    void (__efiapi *restore_tpl)(efi_tpl old_tpl);
+    uint64_t (__efiapi *raise_tpl)(uint64_t new_tpl);
+    void (__efiapi *restore_tpl)(uint64_t old_tpl);
 
     //
     // Memory Services

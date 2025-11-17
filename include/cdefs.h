@@ -40,6 +40,7 @@ enum {
     (offsetof(type, member) + sizeof_field(type, member))
 
 
+/* We need some compiler attributes here */
 #include <compiler.h>
 
 

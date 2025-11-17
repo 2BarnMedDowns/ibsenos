@@ -3,33 +3,108 @@
 #include <inttypes.h>
 
 
-size_t strlen(const char *str)
+// TODO: optimize the sh*t out of this
+void * memset(void *s, int c, size_t n)
+{
+    unsigned char v = c;
+    unsigned char *p = (unsigned char*) s;
+
+    while (n-- > 0) {
+        *p++ = v;
+    }
+
+    return s;
+}
+
+
+// TODO: optimize the sh*t out of this
+void * mempcpy(void *restrict dst, const void *restrict src, size_t n)
+{
+    unsigned char *pdst = (unsigned char*) dst;
+    unsigned char *psrc = (unsigned char*) src;
+
+    while (n-- > 0) {
+        *pdst++ = *psrc++;
+    }
+
+    return (void*) pdst;
+}
+
+
+void * memcpy(void *restrict dst, const void *restrict src, size_t n)
+{
+    mempcpy(dst, src, n);
+    return dst;
+}
+
+
+
+// TODO: optimize the sh*t out of this
+int memcmp(const void *s1, const void *s2, size_t n)
+{
+    unsigned char *s1p = (unsigned char*) s1;
+    unsigned char *s2p = (unsigned char*) s2;
+
+    while (n-- > 0) {
+        unsigned char c1 = *s1p++;
+        unsigned char c2 = *s2p++;
+        int c = ((int) c1) - ((int) c2);
+        if (c != 0) {
+            return c;
+        }
+    }
+
+    return 0;
+}
+
+
+size_t strnlen(const char *str, size_t n)
 {
     size_t len = 0;
-    while (str[len++] != '\0');
+
+    while (n-- > 0) {
+        if (*str++ == '\0') {
+            return len;
+        }
+        ++len;
+    }
+
     return len;
 }
 
 
-size_t strncpy(char *restrict dst, const char *restrict src, size_t size)
+size_t strlen(const char *str)
 {
-    size_t i = 0;
-
-    while (i < size) {
-        dst[i] = src[i];
-        if (src[i] == '\0') {
-            break;
-        }
-        ++i;
-    }
-
-    return i;
+    return strnlen(str, INT32_MAX);
 }
 
 
-size_t strcpy(char *restrict dst, const char *restrict src)
+char * stpncpy(char *restrict dst, const char *restrict src, size_t size)
 {
-    return strncpy(dst, src, INT32_MAX);
+    size_t len = strnlen(src, size);
+    return memset(mempcpy(dst, src, len), 0, size - len);
+}
+
+
+char * strncpy(char *restrict dst, const char *restrict src, size_t size)
+{
+    stpncpy(dst, src, size);
+    return dst;
+}
+
+
+char *stpcpy(char *restrict dst, const char *restrict src)
+{
+    char *p = mempcpy(dst, src, strlen(src));
+    *p = '\0';
+    return p;
+}
+
+
+char * strcpy(char *restrict dst, const char *restrict src)
+{
+    stpcpy(dst, src);
+    return dst;
 }
 
 
@@ -63,18 +138,54 @@ int strcmp(const char *str1, const char *str2)
 }
 
 
+char * strnrev(char *str, size_t n)
+{
+    size_t i = 0;
+
+    while (i < n) {
+        char tmp = str[i];
+        str[i] = str[n - 1];
+        str[n - 1] = tmp;
+        ++i;
+        --n;
+    }
+
+    return str;
+}
+
+
+char * strrev(char *str)
+{
+    return strnrev(str, strlen(str));
+}
+
+
+char * strcat(char *restrict dst, const char *restrict src)
+{
+    stpcpy(dst + strlen(dst), src);
+    return dst;
+}
+
+
+/*
+ * Do a naive conversion to string with division and modulo.
+ *
+ * Note that this is extremely inefficient for large values,
+ * so probably only useful for high bases in order to limit the 
+ * number of iterations (13 for UINT64_MAX in base-36).
+ */
 static int naive_convert(uint64_t value, char *buffer, int base)
 {
     int digits = 0;
     char reverse[64];
 
     do {
-        int current = value % base;
+        int digit = value % base;
         value /= base;
-        if (current > 9) {
-            current += 'a' - '0' - 10;
+        if (digit > 9) {
+            digit += 'a' - '0' - 10;
         }
-        reverse[digits++] = '0' + current;
+        reverse[digits++] = '0' + digit;
     } while (value > 0);
 
     for (int digit = 0; digit < digits; ++digit) {
@@ -93,15 +204,15 @@ static int bitwise_convert(uint64_t value, char *buffer, int bits)
     int pos = 63 / bits * bits;
     
     do {
-        int current = (value >> pos) & mask;
-        value -= (uint64_t) current << pos;
+        int digit = (value >> pos) & mask;
+        value -= (uint64_t) digit << pos;
         pos -= bits;
         
-        if (digits != 0 || current != 0 || pos < 0) {
-            if (current > 9) {
-                current += 'a' - '0' - 10;
+        if (digits != 0 || digit != 0 || pos < 0) {
+            if (digit > 9) {
+                digit += 'a' - '0' - 10;
             }
-            buffer[digits++] = '0' + current;
+            buffer[digits++] = '0' + digit;
         }
     } while (pos >= 0);
 
@@ -116,19 +227,19 @@ static int to_decimal(uint64_t value, char *buffer)
     int pos = 19;
 
     do {
-        int current;
+        int i;
         uint64_t lim;
 
-        for (current = 0, lim = 1; current < pos; ++current) {
+        for (i = 0, lim = 1; i < pos; ++i) {
             lim *= 10;
         }
 
         if (digits != 0 || value >= lim || pos == 0) {
-            for (current = 0; value >= lim; ++current) {
+            int digit;
+            for (digit = 0; value >= lim; ++digit) {
                 value -= lim;
             }
-
-            buffer[digits++] = '0' + current;
+            buffer[digits++] = '0' + digit;
         }
     } while (pos--);
 
@@ -137,7 +248,7 @@ static int to_decimal(uint64_t value, char *buffer)
 }
 
 
-int u64tostr(uint64_t value, char *str, int base)
+size_t u64tostr(uint64_t value, char *str, int base)
 {
     switch (base) {
         case 0:

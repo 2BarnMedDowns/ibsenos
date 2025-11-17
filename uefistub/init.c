@@ -153,9 +153,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
         efi_puts(buf);
 
         console_out->set_cursor(console_out, 4 + x, 6);
-        for (int l = 0; l < widths[col] - 1; ++l) {
-            buf[l] = '-';
-        }
+        memset(buf, '-', widths[col] - 1);
         buf[widths[col]-1] = '\0';
         efi_puts(buf);
     }
@@ -170,14 +168,25 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
             for (size_t j = 0; j < col; ++j) {
                 x += widths[j];
             }
-
+            
+            uint64_t w = widths[col];
+            char paddedbuf[w];
             console_out->set_cursor(console_out, 4 + x, 7 + i);
-
             int base = bases[col];
-            u64tostr(number, buf, base);
-            efi_puts(buf);
+            size_t digits = u64tostr(number, buf, base);
+            memset(paddedbuf, ' ', w - 1 - digits);
+            paddedbuf[w - digits - 1] = '\0';
+            strcat(paddedbuf, buf);
+            //strcpy(&paddedbuf[w - 1 - digits], buf);
+            efi_puts(paddedbuf);
         }
     }
+
+    console_out->set_cursor(console_out, 0, console_rows - 2);
+    strcpy(buf, "Hello, world!");
+    efi_puts("Reversed string: ");
+    efi_puts(strrev(buf));
+    efi_puts("\n");
 
     // TODO: set up boot services and stuff here
 

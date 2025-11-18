@@ -10,3 +10,4 @@ qemu
 mingw64-gcc
 xorriso
 gnu-efi-devel
+

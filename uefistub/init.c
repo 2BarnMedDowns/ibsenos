@@ -191,6 +191,9 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
 
     // FIXME: this table does not look right, sometimes print the same address
     // Maybe some pointer stuff is off in get_memory_map ??
+    // it may seem that we might be corrupting the image, since it kinda works
+    // the first time and then becomes weird afterwards
+    // maybe we are crashing the UEFI firmware and that in turn is corrupting the image?
     for (uint64_t i = 0; i < mmap->num_descriptors; ++i) {
         const struct efi_memory_desc *md = &mmap->descriptors[i];
         

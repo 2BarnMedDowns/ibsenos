@@ -9,6 +9,10 @@ endif
 
 OVMF_PATH ?= $(DEFAULT_OVMF_PATH)
 
+ifeq ($(wildcard $(OVMF_PATH)),)
+$(warning Could not find OVMF BIOS file, specify a valid path with ``make OVMF_PATH=/path/to/OVMF.fd [target]'')
+endif
+
 ARCH_TARGET ?= x86_64
 ARCH_HOSTED ?= w64
 

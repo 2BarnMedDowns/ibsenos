@@ -145,7 +145,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
         efi_puts("Allocating memory...");
 
         uint64_t phys_addr = 0;
-        status = efi_allocate_memory(2 * EFI_PAGE_SIZE, &phys_addr, 1 << 30);
+        status = efi_allocate_memory(1 * EFI_PAGE_SIZE, &phys_addr, 1 << 30);
         
         efi_puts(status == EFI_SUCCESS ? "SUCCESS" : "FAILED");
         efi_puts("\n");
@@ -161,7 +161,58 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
         efi_puts("\n");
     }
 
+    // Get the memory map
+    struct efi_memory_map *mmap = NULL;
+    status = efi_get_memory_map(&mmap);
+    if (status != EFI_SUCCESS) {
+        efi_puts("Failed to get memory map\n");
+        print_addr(status);
+        efi_puts("\n");
+        return EFI_LOAD_ERROR;
+    }
 
+    efi_puts("Memory map has ");
+    u64tostr(mmap->num_descriptors, buf, 10);
+    efi_puts(buf);
+    efi_puts(" descriptors\n");
+
+    u64tostr(mmap->descriptor_size, buf, 10);
+    efi_puts("Descriptor size: ");
+    efi_puts(buf);
+    efi_puts("\n");
+    efi_puts("Buffer size: ");
+    u64tostr(mmap->buffer_size, buf, 10);
+    efi_puts(buf);
+    efi_puts("\n");
+    efi_puts("Map size: ");
+    u64tostr(mmap->map_size, buf, 10);
+    efi_puts(buf);
+    efi_puts("\n");
+
+    // FIXME: this table does not look right, sometimes print the same address
+    // Maybe some pointer stuff is off in get_memory_map ??
+    for (uint64_t i = 0; i < mmap->num_descriptors; ++i) {
+        const struct efi_memory_desc *md = &mmap->descriptors[i];
+        
+        if (md->type == EFI_LOADER_DATA) {
+            u64tostr(i, buf, 10);
+            efi_puts("Descriptor ");
+            efi_puts(buf);
+            efi_puts(" has physical address ");
+            print_addr(md->phys_start);
+            efi_puts(" and is ");
+            u64tostr(md->num_pages, buf, 10);
+            efi_puts(buf);
+            efi_puts(" pages\n");
+            u64tostr(md->attribute, buf, 16);
+            efi_puts(buf);
+            efi_puts("\n");
+        }
+    }
+    
+    const struct efi_boot_services *bs =
+        (const struct efi_boot_services*) systab->boot_services;
+    bs->free_pool((void*) mmap);
 
     // TODO: set up boot services and stuff here
 

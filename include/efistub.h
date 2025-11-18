@@ -4,8 +4,8 @@
 #ifndef __IBSENOS_EFISTUB_H__
 #define __IBSENOS_EFISTUB_H__
 
+#include <efi.h>
 #include <inttypes.h>
-
 
 
 #define EFI_CONSOLE_BLACK           0x00
@@ -40,6 +40,24 @@ void efi_char16_puts(const uint16_t *str);
  * Write an UTF-8 encoded string to the console.
  */
 void efi_puts(const char *str);
+
+
+/*
+ * TODO: this is proof of concept for now
+ */
+struct efi_memory_map
+{
+    uint64_t buffer_size;
+    uint64_t map_size;
+    uint32_t descriptor_version;
+    uint64_t descriptor_size;
+    uint64_t key;
+    uint64_t num_descriptors;
+    struct efi_memory_desc descriptors[];
+};
+
+
+efi_status_t efi_get_memory_map(struct efi_memory_map **map);
 
 
 /*

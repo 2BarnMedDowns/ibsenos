@@ -20,9 +20,11 @@ AS := $(CC)
 
 WARNINGS := all extra shadow unused error-implicit-function-declaration
 CFLAGS := -std=gnu11 -ffreestanding -nostartfiles -nostdinc -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
-CFLAGS += $(addprefix -W,$(WARNINGS))
+CFLAGS += $(addprefix -W,$(WARNINGS)) 
 CFLAGS += -Iinclude/
 LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
+DEBUG_CFLAGS := -O0 -DDEBUG
+RELEASE_CFLAGS := -O2 -DNDEBUG
 
 
 # Usage: $(call target,<target name>,<build name>,<space separated list of source files>,[entry point])
@@ -39,20 +41,26 @@ $1: $$($1-build)
 $1-clean:
 	$$(RM) $$($1-build) $$($1-objs)
 
-$$($1-build): $$($1-objs)
+$$($1-build): $$($1-objs) 
 	@mkdir -p $$(dir $$@)
 	$$(LD) $$(LDFLAGS) $(if $4,-e $4) -o $$@ $$^
 
-$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs))
+$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(if $$(DEBUG),.FORCE)
 	@mkdir -p $$(dir $$@)
-	$$(CC) $$(CFLAGS) -c -o $$@ $$<
+	$$(CC) $$(CFLAGS) -c -o $$@ $$< $$(if $$(DEBUG),$$(DEBUG_CFLAGS),$$(RELEASE_CFLAGS))
 endef
 
 
-.PHONY: all clean image iso 
+.PHONY: all clean image iso make debug .FORCE
 
 # Make a disk image that can be booted with Qemu
 all: iso
+
+.FORCE: ;
+
+debug: DEBUG = 1
+debug: clean all
+
 
 # Boot loader target
 $(eval $(call target,bootloader,BOOTX64.EFI, \
@@ -88,7 +96,7 @@ $(BUILD_DIR)/$(PROJECT).iso: $(BUILD_DIR)/$(PROJECT).img
 
 # Create a disk image and format it with MSDOS file system
 # This is used by the EFI boot loader
-$(BUILD_DIR)/$(PROJECT).img: $(bootloader-build)
+$(BUILD_DIR)/$(PROJECT).img: $(bootloader-build) 
 	dd if=/dev/zero of=$@ bs=1M count=32
 	mformat -i $@ ::
 	mmd -i $@ ::/EFI

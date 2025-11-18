@@ -8,37 +8,38 @@
 const struct efi_system_table *ST = NULL;
 
 
-static void draw_box(uint64_t x, uint64_t y, uint64_t w, uint64_t h)
+#ifdef DEBUG
+static void print_uefi_info(void)
 {
-    const struct efi_simple_text_output_protocol *conout =
-        (const struct efi_simple_text_output_protocol*) ST->console_out;
+    uint32_t uefirev = ST->hdr.revision;
+    uint32_t uefi_major = (uefirev >> 16);
+    uint32_t uefi_minor = (uefirev & 0xffff) / 10;
+    uint32_t uefi_tertiary = uefirev % 10;
 
-    uint16_t line[w];
-    line[w-1] = 0;
+    uint32_t fwrev_major = (ST->fw_revision >> 16);
+    uint32_t fwrev_minor = (ST->fw_revision & 0xffff);
 
-    conout->set_cursor(conout, x, y);
-    line[0] = 0x250c;
-    for (uint16_t c = 1; c < w-1; ++c) {
-        line[c] = 0x2500;
-    }
-    line[w-1] = 0x2510;
-    efi_char16_puts(line);
+    efi_puts("UEFI revision: ");
+    efi_putd(uefi_major);
+    efi_puts(".");
+    efi_putd(uefi_minor);
+    efi_puts(".");
+    efi_putd(uefi_tertiary);
+    efi_puts("\n");
 
-    for (uint16_t r = y+1; r < y+h-1; ++r) {
-        conout->set_cursor(conout, x, r);
-        efi_char16_puts(L"\x2502");
-        conout->set_cursor(conout, x+w-1, r);
-        efi_char16_puts(L"\x2502");
-    }
+    efi_puts("Firmware vendor: ");
+    efi_char16_puts((const uint16_t*) ST->fw_vendor);
+    efi_puts("\n");
 
-    conout->set_cursor(conout, x, y+h-1);
-    line[0] = 0x2514;
-    for (uint16_t c = 1; c < w-1; ++c) {
-        line[c] = 0x2500;
-    }
-    line[w-1] = 0x2518;
-    efi_char16_puts(line);
+    efi_puts("Firmware revision: ");
+    efi_putd(fwrev_major);
+    efi_puts(".");
+    efi_putd(fwrev_minor);
+    efi_puts("\n");
+
+    efi_puts("\n");
 }
+#endif
 
 
 /*
@@ -55,75 +56,10 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     }
 
     ST = systab;
-    const struct efi_simple_text_output_protocol * console_out =
-        (const struct efi_simple_text_output_protocol*) systab->console_out;
 
-    // Find console mode with the largest rows * columns
-    uint64_t console_columns = 80;
-    uint64_t console_rows = 25;
-    uint64_t console_mode = 0;
-    for (uint64_t i = 1; i  < 32; ++i) {
-        uint64_t columns = 0;
-        uint64_t rows = 0;
-
-        status = console_out->query_mode(console_out, i, &columns, &rows);
-        if (status == EFI_SUCCESS && rows * columns > console_rows * console_columns) {
-            console_mode = i;
-            console_columns = columns;
-            console_rows = rows;
-        }
-    }
-
-    status = console_out->set_mode(console_out, console_mode);
-    if (status != EFI_SUCCESS) {
-        return EFI_LOAD_ERROR;
-    }
-
-    uint32_t uefirev = systab->hdr.revision;
-    uint32_t uefi_major = (uefirev >> 16);
-    uint32_t uefi_minor = (uefirev & 0xffff) / 10;
-    uint32_t uefi_tertiary = uefirev % 10;
-
-    uint32_t fwrev_major = (systab->fw_revision >> 16);
-    uint32_t fwrev_minor = (systab->fw_revision & 0xffff);
-
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
-    console_out->clear_screen(console_out);
-
-    console_out->set_cursor(console_out, 0, 0);
-
-    efi_puts("UEFI revision: ");
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_YELLOW, EFI_CONSOLE_BLACK));
-    efi_putd(uefi_major);
-    efi_puts(".");
-    efi_putd(uefi_minor);
-    efi_puts(".");
-    efi_putd(uefi_tertiary);
-    efi_puts("\n");
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
-
-    efi_puts("Firmware vendor: ");
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_MAGENTA, EFI_CONSOLE_BLACK));
-    efi_char16_puts((const uint16_t*) systab->fw_vendor);
-    efi_puts("\n");
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
-
-    efi_puts("Firmware revision: ");
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_CYAN, EFI_CONSOLE_BLACK));
-    efi_putd(fwrev_major);
-    efi_puts(".");
-    efi_putd(fwrev_minor);
-    efi_puts("\n");
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
-
-    efi_puts("\n");
+#ifdef DEBUG
+    print_uefi_info();
+#endif
 
     uint64_t phys_addrs[3] = {0};  // phys_addrs[0] to see that there is no memory map table when we haven't allocated anything
     uint64_t num_pages_per_chunk = 1;

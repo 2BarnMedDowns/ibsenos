@@ -1,20 +1,11 @@
 #include <efi.h>
-#include <efistub.h>
+#include "efistub.h"
 #include "efi_console.h"
 #include <inttypes.h>
 #include <string.h>
 
 
 const struct efi_system_table *ST = NULL;
-
-
-static void print_addr(uint64_t addr)
-{
-    char buffer[9];
-    u64tostr(addr, buffer, 16);
-    efi_puts("0x");
-    efi_puts(buffer);
-}
 
 
 static void draw_box(uint64_t x, uint64_t y, uint64_t w, uint64_t h)
@@ -102,18 +93,14 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
 
     console_out->set_cursor(console_out, 0, 0);
 
-    char buf[66];
     efi_puts("UEFI revision: ");
     console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_YELLOW, EFI_CONSOLE_BLACK));
-    u64tostr(uefi_major, buf, 0);
-    efi_puts(buf);
+    efi_putd(uefi_major);
     efi_puts(".");
-    u64tostr(uefi_minor, buf, 0);
-    efi_puts(buf);
+    efi_putd(uefi_minor);
     efi_puts(".");
-    u64tostr(uefi_tertiary, buf, 0);
-    efi_puts(buf);
+    efi_putd(uefi_tertiary);
     efi_puts("\n");
     console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
@@ -129,11 +116,9 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     efi_puts("Firmware revision: ");
     console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_CYAN, EFI_CONSOLE_BLACK));
-    u64tostr(fwrev_major, buf, 0);
-    efi_puts(buf);
+    efi_putd(fwrev_major);
     efi_puts(".");
-    u64tostr(fwrev_minor, buf, 0);
-    efi_puts(buf);
+    efi_putd(fwrev_minor);
     efi_puts("\n");
     console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
@@ -143,86 +128,64 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     uint64_t phys_addrs[2];
     uint64_t num_pages_per_chunk = 1;
 
-    // Allocate some memory and try to access it
+    // Allocate some memory
     for (size_t i = 0; i < array_size(phys_addrs); ++i) {
         efi_puts("Allocating memory...");
 
-        status = efi_allocate_memory(num_pages_per_chunk * EFI_PAGE_SIZE, &phys_addrs[i], 1 << 30);
+        status = efi_allocate_memory_pages(num_pages_per_chunk * EFI_PAGE_SIZE, &phys_addrs[i], 1 << 30);
         
         efi_puts(status == EFI_SUCCESS ? "SUCCESS" : "FAILED");
         efi_puts("\n");
         
         if (status == EFI_SUCCESS) {
             efi_puts("Address: ");
-            print_addr(phys_addrs[i]);
+            efi_puth(phys_addrs[i]);
         } else {
             efi_puts("Error code: ");
-            print_addr(status); // trololo
+            efi_puth(status);
         }
         efi_puts("\n");
         efi_puts("\n");
     }
 
-    // Get the memory map
-    struct efi_memory_map *mmap = NULL;
-    status = efi_get_memory_map(&mmap);
-    if (status != EFI_SUCCESS) {
-        efi_puts("Failed to get memory map\n");
-        print_addr(status);
-        efi_puts("\n");
-        return EFI_LOAD_ERROR;
-    }
+//    // Get the memory map
+//    struct efi_memory_map *mmap = NULL;
+//    status = efi_get_memory_map(&mmap);
+//    if (status != EFI_SUCCESS) {
+//        efi_puts("Failed to get memory map\n");
+//        efi_puts("Error code: ");
+//        efi_puth(status);
+//        efi_puts("\n");
+//        goto leave;
+//    }
+//
+//    efi_puts("Memory map has ");
+//    efi_putd(mmap->map_entries);
+//    efi_puts(" descriptors\n");
+//
+//    // FIXME: this table does not look right, sometimes print the same address
+//    // Maybe some pointer stuff is off in get_memory_map ??
+//    // it may seem that we might be corrupting the image, since it kinda works
+//    // the first time and then becomes weird afterwards
+//    // maybe we are crashing the UEFI firmware and that in turn is corrupting the image?
+//    for (uint64_t i = 0; i < mmap->map_entries; ++i) {
+//        const struct efi_memory_desc *md = &mmap->map[i];
+//        
+//        efi_puts("Descriptor ");
+//        efi_putd(i);
+//        efi_puts(" has physical address ");
+//        efi_puth(md->phys_start);
+//        efi_puts(" and is ");
+//        efi_putd(md->num_pages);
+//        efi_puts(" pages\n");
+//        efi_puts("Attribute: ");
+//        efi_puth(md->attribute);
+//        efi_puts("\n");
+//    }
 
-    efi_puts("Memory map has ");
-    u64tostr(mmap->num_descriptors, buf, 10);
-    efi_puts(buf);
-    efi_puts(" descriptors\n");
-
-    u64tostr(mmap->descriptor_size, buf, 10);
-    efi_puts("Descriptor size: ");
-    efi_puts(buf);
-    efi_puts("\n");
-    efi_puts("Buffer size: ");
-    u64tostr(mmap->buffer_size, buf, 10);
-    efi_puts(buf);
-    efi_puts("\n");
-    efi_puts("Map size: ");
-    u64tostr(mmap->map_size, buf, 10);
-    efi_puts(buf);
-    efi_puts("\n");
-
-    // FIXME: this table does not look right, sometimes print the same address
-    // Maybe some pointer stuff is off in get_memory_map ??
-    // it may seem that we might be corrupting the image, since it kinda works
-    // the first time and then becomes weird afterwards
-    // maybe we are crashing the UEFI firmware and that in turn is corrupting the image?
-    for (uint64_t i = 0; i < mmap->num_descriptors; ++i) {
-        const struct efi_memory_desc *md = &mmap->descriptors[i];
-        
-        if (md->type == EFI_LOADER_DATA) {
-            u64tostr(i, buf, 10);
-            efi_puts("Descriptor ");
-            efi_puts(buf);
-            efi_puts(" has physical address ");
-            print_addr(md->phys_start);
-            efi_puts(" and is ");
-            u64tostr(md->num_pages, buf, 10);
-            efi_puts(buf);
-            efi_puts(" pages\n");
-            u64tostr(md->attribute, buf, 16);
-            efi_puts(buf);
-            efi_puts("\n");
-        }
-    }
-
-    const struct efi_boot_services *bs =
-        (const struct efi_boot_services*) systab->boot_services;
-    bs->free_pool((void*) mmap);
-
-    // TODO: set up boot services and stuff here
-    
+leave:
     for (size_t i = 0; i < array_size(phys_addrs); ++i) {
-        efi_free_memory(num_pages_per_chunk * EFI_PAGE_SIZE, phys_addrs[i]);
+        efi_free_memory_pages(num_pages_per_chunk * EFI_PAGE_SIZE, phys_addrs[i]);
     }
     
     efi_puts("Bye\n");

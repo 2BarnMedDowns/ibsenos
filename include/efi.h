@@ -1,10 +1,11 @@
+/*
+ * This file should only contain definitions from the UEFI 2.11 specification.
+ * See: https://uefi.org/specs/UEFI/2.11/index.html
+ *
+ * For helper functions and types, see the uefistub implementation.
+ */
 #ifndef __IBSENOS_EFI_H__
 #define __IBSENOS_EFI_H__
-
-/*
- * Implemented following the UEFI 2.11 specification
- * See: https://uefi.org/specs/UEFI/2.11/index.html
- */
 
 #include <compiler.h>
 #include <cdefs.h>
@@ -149,7 +150,10 @@ enum efi_interface_type {
 };
 
 
-/* Memory attribute values */
+/* 
+ * Memory attribute values.
+ * Can be OR'd together.
+ */
 #define EFI_MEMORY_UC               (1ULL <<  0)    /* uncached */
 #define EFI_MEMORY_WC               (1ULL <<  1)    /* write-coalescing */
 #define EFI_MEMORY_WT               (1ULL <<  2)    /* write-through */
@@ -168,7 +172,7 @@ enum efi_interface_type {
 
 
 /*
- * EFI memory descriptor.
+ * EFI memory map descriptor.
  */
 struct efi_memory_desc
 {
@@ -180,7 +184,9 @@ struct efi_memory_desc
     uint64_t attribute;
 };
 
+
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
+
 
 #define EFI_PAGE_SHIFT 12
 #define EFI_PAGE_SIZE (1UL << EFI_PAGE_SHIFT)

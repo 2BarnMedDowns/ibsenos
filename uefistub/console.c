@@ -1,12 +1,9 @@
 #include "efi_console.h"
+#include "efistub.h"
 #include <efi.h>
-#include <efistub.h>
 #include <inttypes.h>
 #include <cdefs.h>
-#include <efistub.h>
-
-
-extern const struct efi_system_table *ST;
+#include <string.h>
 
 
 /*
@@ -95,4 +92,21 @@ void efi_char16_puts(const uint16_t *str)
         (const struct efi_simple_text_output_protocol*) ST->console_out;
 
     conout->output_string(conout, str);
+}
+
+
+void efi_putd(uint64_t value)
+{
+    char buf[21];
+    u64tostr(value, buf, 10);
+    efi_puts(buf);
+}
+
+
+
+void efi_puth(uint64_t value)
+{
+    char buf[17];
+    u64tostr(value, buf, 16);
+    efi_puts(buf);
 }

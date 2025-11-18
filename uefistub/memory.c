@@ -2,8 +2,11 @@
 #include <efi.h>
 #include <efistub.h>
 #include <align.h>
-#include <string.h>
 
+
+// FIXME DEBUG
+#include <string.h>
+#include "efi_console.h"
 
 extern const struct efi_system_table *ST;
 
@@ -29,13 +32,35 @@ efi_status_t efi_get_memory_map(struct efi_memory_map **map)
         return EFI_LOAD_ERROR;
     }
 
+    // FIXME DEBUG
+    char buf[21];
+    u64tostr(sizeof(*m), buf, 10);
+    efi_puts("sizeof ");
+    efi_puts(buf);
+    efi_puts(" descriptor size ");
+    u64tostr(desc_size, buf, 10);
+    efi_puts(buf);
+    efi_puts("\n");
+
+    efi_puts("map_size ");
+    u64tostr(map_size, buf, 10);
+    efi_puts(buf);
+    efi_puts("\n");
+
+    efi_puts("num descriptors (map_size / desc_size) ");
+    u64tostr(map_size / desc_size, buf, 10);
+    efi_puts(buf);
+    efi_puts("\n");
+
     // FIXME: if we want to use the map after BootServicesExit, 
     // we should probably use EFI_ACPI_RECLAIM_MEMORY 
     // (and also install a configuration table)
     enum efi_memory_type type = EFI_LOADER_DATA;
 
     // Allocate memory for memory map
-    uint64_t size = map_size + desc_size * 32; // Need extra padding here otherwise it randomly fails
+    // Need extra padding here otherwise it randomly fails
+    // Don't understand why, except maybe to have room for the pool alloc too?
+    uint64_t size = map_size + desc_size * 32; 
     status = bs->allocate_pool(EFI_LOADER_DATA, 
                                sizeof(*m) + size,
                                (void**) &m);

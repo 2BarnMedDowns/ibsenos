@@ -140,19 +140,21 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
 
     efi_puts("\n");
 
+    uint64_t phys_addrs[2];
+    uint64_t num_pages_per_chunk = 1;
+
     // Allocate some memory and try to access it
-    for (int i = 0; i < 2; ++i) {
+    for (size_t i = 0; i < array_size(phys_addrs); ++i) {
         efi_puts("Allocating memory...");
 
-        uint64_t phys_addr = 0;
-        status = efi_allocate_memory(1 * EFI_PAGE_SIZE, &phys_addr, 1 << 30);
+        status = efi_allocate_memory(num_pages_per_chunk * EFI_PAGE_SIZE, &phys_addrs[i], 1 << 30);
         
         efi_puts(status == EFI_SUCCESS ? "SUCCESS" : "FAILED");
         efi_puts("\n");
         
         if (status == EFI_SUCCESS) {
             efi_puts("Address: ");
-            print_addr(phys_addr);
+            print_addr(phys_addrs[i]);
         } else {
             efi_puts("Error code: ");
             print_addr(status); // trololo
@@ -212,12 +214,18 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
             efi_puts("\n");
         }
     }
-    
+
     const struct efi_boot_services *bs =
         (const struct efi_boot_services*) systab->boot_services;
     bs->free_pool((void*) mmap);
 
     // TODO: set up boot services and stuff here
+    
+    for (size_t i = 0; i < array_size(phys_addrs); ++i) {
+        efi_free_memory(num_pages_per_chunk * EFI_PAGE_SIZE, phys_addrs[i]);
+    }
+    
+    efi_puts("Bye\n");
 
     for (;;) {}
 }

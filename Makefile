@@ -13,6 +13,10 @@ ARCH_TARGET ?= x86_64
 ARCH_HOSTED ?= w64
 
 BUILD_DIR ?= build
+BUILD ?= $(file < $(BUILD_DIR)/.build)
+ifeq ($(BUILD),)
+	BUILD := release
+endif
 
 CC := $(ARCH_TARGET)-$(ARCH_HOSTED)-mingw32-gcc
 LD := $(CC)
@@ -25,6 +29,10 @@ CFLAGS += -Iinclude/
 LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
 DEBUG_CFLAGS := -O0 -DDEBUG
 RELEASE_CFLAGS := -O2 -DNDEBUG
+
+
+# Helper function to determine if last build is the same build
+is_build = $(if $(filter $(BUILD_DIR)/.build,$(wildcard $(BUILD_DIR)/.build)),$(strip $(filter $1,$(file <$(BUILD_DIR)/.build))))
 
 
 # Usage: $(call target,<target name>,<build name>,<space separated list of source files>,[entry point])
@@ -45,21 +53,28 @@ $$($1-build): $$($1-objs)
 	@mkdir -p $$(dir $$@)
 	$$(LD) $$(LDFLAGS) $(if $4,-e $4) -o $$@ $$^
 
-$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(if $$(DEBUG),.FORCE)
+$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(BUILD_DIR)/.build 
 	@mkdir -p $$(dir $$@)
-	$$(CC) $$(CFLAGS) -c -o $$@ $$< $$(if $$(DEBUG),$$(DEBUG_CFLAGS),$$(RELEASE_CFLAGS))
+	$$(CC) $$(CFLAGS) -c -o $$@ $$< $$(if $$(strip $$(filter debug,$$(BUILD))),$$(DEBUG_CFLAGS),$$(RELEASE_CFLAGS))
 endef
 
 
-.PHONY: all clean image iso make debug .FORCE
+.PHONY: all clean image iso make debug release .FORCE
 
 # Make a disk image that can be booted with Qemu
 all: iso
 
-.FORCE: ;
 
-debug: DEBUG = 1
-debug: clean all
+# Empty target to force rebuild
+.FORCE: ; 
+
+debug: BUILD = debug
+debug: $(if $(call is_build,debug),,clean) all $(BUILD_DIR)/.build
+
+
+release: BUILD = release
+release: $(if $(call is_build,release),,clean) all $(BUILD_DIR)/.build
+
 
 
 # Boot loader target
@@ -75,7 +90,7 @@ $(eval $(call target,bootloader,BOOTX64.EFI, \
 
 
 clean: $(TARGETS:%=%-clean)
-	$(RM) $(BUILD_DIR)/$(PROJECT).iso $(BUILD_DIR)/$(PROJECT).img
+	$(RM) $(BUILD_DIR)/$(PROJECT).iso $(BUILD_DIR)/$(PROJECT).img $(BUILD_DIR)/.build
 
 
 # Build a CDROM iso
@@ -102,6 +117,12 @@ $(BUILD_DIR)/$(PROJECT).img: $(bootloader-build)
 	mmd -i $@ ::/EFI
 	mmd -i $@ ::/EFI/BOOT
 	mcopy -v -i $@ $< ::/EFI/BOOT
+
+
+# Write current build type to file
+$(BUILD_DIR)/.build: $(if $(call is_build,$(BUILD)),,.FORCE)
+	@mkdir -p $(dir $@)
+	echo "$(strip $(BUILD))" > $@
 
 
 # TODO: Move Qemu launch stuff to a virsh script instead in the future

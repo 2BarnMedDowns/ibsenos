@@ -9,7 +9,7 @@
 
 
 /*
- * Fill memory with with constant byte.
+ * Fill memory with constant byte.
  *
  * Fill the first n bytes of the memory pointed to by s 
  * with the constant byte c.
@@ -34,7 +34,7 @@ void * memcpy(void *restrict dst, const void *restrict src, size_t n);
 
 /*
  * Copy memory area.
- * Identical to memcpy, but returns returns a pointer to dst + n
+ * Identical to memcpy, but returns a pointer to dst + n
  */
 void * mempcpy(void *restrict dst, const void *restrict src, size_t n);
 

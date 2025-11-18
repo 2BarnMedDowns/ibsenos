@@ -143,6 +143,11 @@ enum efi_memory_type
     EFI_MAX_MEMORY_TYPE
 };
 
+enum efi_interface_type {
+    EFI_NATIVE_INTERFACE = 0,
+    EFI_INTERFACE_TYPE
+};
+
 
 /* Memory attribute values */
 #define EFI_MEMORY_UC               (1ULL <<  0)    /* uncached */
@@ -221,14 +226,25 @@ struct efi_boot_services
     void*        CloseEvent;     // EFI 1.0+
     void*        CheckEvent;     // EFI 1.0+
 
-    //
-    // Protocol Handler Services
-    void*        InstallProtocolInterface;            // EFI 1.0+
-    void*        ReinstallProtocolInterface;          // EFI 1.0+
-    void*        UninstallProtocolInterface;          // EFI 1.0+
+    // //
+    // // Protocol Handler Services
+    efi_status_t (__efiapi *install_protocol_interface)(void **handle,
+                                                        efi_guid_t *protocol,
+                                                        enum efi_interface_type interface_type,
+                                                        void *interface);
+
+    efi_status_t (__efiapi *uninstall_protocol_interface)(void *handle,
+                                                          efi_guid_t *protocol,
+                                                          void *interface);
+
+    efi_status_t (__efiapi *reinstall_protocol_interface)(void *handle,
+                                                          efi_guid_t *protocol,
+                                                          void *old_interface,
+                                                          void *new_interface);
+
     void*        HandleProtocol;                      // EFI 1.0+
     void*        Reserved;                            // EFI 1.0+
-    void*        RegisterProtocolNotify;              // EFI  1.0+
+    void*        RegisterProtocolNotify;              // EFI  1.0+  // Requires Event & Timer Services
     void*        LocateHandle;                        // EFI 1.0+
     void*        LocateDevicePath;                    // EFI 1.0+
     void*        InstallConfigurationTable;           // EFI 1.0+

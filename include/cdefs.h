@@ -22,7 +22,7 @@ enum {
 
 
 /*
- * Convenience macro to get the type of a structure member.
+ * Convenience macro to get the type of structure member.
  */
 #define typeof_field(type, member) typeof(((type*)0)->member)
 

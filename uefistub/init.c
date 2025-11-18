@@ -125,7 +125,7 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
 
     efi_puts("\n");
 
-    uint64_t phys_addrs[2];
+    uint64_t phys_addrs[3] = {0};  // phys_addrs[0] to see that there is no memory map table when we haven't allocated anything
     uint64_t num_pages_per_chunk = 1;
 
     // Allocate some memory
@@ -148,90 +148,50 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
         efi_puts("\n");
     }
 
-//    // Get the memory map
-//    struct efi_memory_map *mmap = NULL;
-//    status = efi_get_memory_map(&mmap);
-//    if (status != EFI_SUCCESS) {
-//        efi_puts("Failed to get memory map\n");
-//        efi_puts("Error code: ");
-//        efi_puth(status);
-//        efi_puts("\n");
-//        goto leave;
-//    }
-//
-//    efi_puts("Memory map has ");
-//    efi_putd(mmap->map_entries);
-//    efi_puts(" descriptors\n");
-//
-//    // FIXME: this table does not look right, sometimes print the same address
-//    // Maybe some pointer stuff is off in get_memory_map ??
-//    // it may seem that we might be corrupting the image, since it kinda works
-//    // the first time and then becomes weird afterwards
-//    // maybe we are crashing the UEFI firmware and that in turn is corrupting the image?
-//    for (uint64_t i = 0; i < mmap->map_entries; ++i) {
-//        const struct efi_memory_desc *md = &mmap->map[i];
-//        
-//        efi_puts("Descriptor ");
-//        efi_putd(i);
-//        efi_puts(" has physical address ");
-//        efi_puth(md->phys_start);
-//        efi_puts(" and is ");
-//        efi_putd(md->num_pages);
-//        efi_puts(" pages\n");
-//        efi_puts("Attribute: ");
-//        efi_puth(md->attribute);
-//        efi_puts("\n");
-//    }
+    // Get the memory map
+    struct efi_memory_map_data map_info = {0};
+    void *map = NULL;
+    status = efi_load_memory_map(&map, &map_info);
+    if (status != EFI_SUCCESS) {
+        efi_puts("Failed to get memory map or there is no allocated memory\n");
+        goto leave;
+    }
+
+    uint64_t num_entries = map_info.map_size / map_info.desc_size;
+    efi_puts("Number of memory map entries: ");
+    efi_putd(num_entries);
+    efi_puts("\n\n");
+
+    for (uint64_t idx = 0; idx < num_entries; ++idx) {
+        struct efi_memory_desc *md = efi_memory_desc_ptr(map, map_info.desc_size, idx);
+
+        if (md->type == EFI_LOADER_DATA) {
+            efi_puts("Entry ");
+            efi_putd(idx);
+            efi_puts(" is type EfiLoaderData\n");
+            efi_puts("Physical start address: ");
+            efi_puth(md->phys_start);
+            efi_puts("\n");
+            efi_puts("Number of pages: ");
+            efi_putd(md->num_pages);
+            efi_puts("\n");
+            efi_puts("Memory attributes: \n");
+            efi_put0h(md->attribute);
+            efi_puts("\n\n");
+        }
+    }
 
 leave:
+    // We must free all memory allocated here, according to the 7.2. part of the spec
+    // if we want to move some memory, we need to install stuff into the configuration table
+    efi_free_buffer(map);
+
     for (size_t i = 0; i < array_size(phys_addrs); ++i) {
         efi_free_memory_pages(num_pages_per_chunk * EFI_PAGE_SIZE, phys_addrs[i]);
     }
     
     efi_puts("Bye\n");
 
+    // call ExitBootServices in future
     for (;;) {}
 }
-
-//
-//static EFI_STATUS EFIAPI PrintLn(IN EFI_SYSTEM_TABLE * SysTbl, IN CHAR16 * String)
-//{
-//    EFI_STATUS Status;
-//
-//    Status = SysTbl->ConOut->OutputString(SysTbl->ConOut, String);
-//    if (EFI_ERROR(Status)) {
-//        return Status;
-//    }
-//
-//    Status = SysTbl->ConOut->OutputString(SysTbl->ConOut, L"\n\r");
-//    return Status;
-//}
-//
-//
-//EFI_STATUS EFIAPI Main(EFI_HANDLE ImgHandle, EFI_SYSTEM_TABLE* SysTbl)
-//{
-//    InitializeLib(ImgHandle, SysTbl);
-//
-//    EFI_STATUS Status;
-//
-//    Status = SysTbl->ConOut->ClearScreen(SysTbl->ConOut);
-//    if (EFI_ERROR(Status)) {
-//        PrintLn(SysTbl, L"ERROR: Failed to clear the screen");
-//    }
-//
-//    //SysTbl->ConOut->OutputString(SysTbl->ConOut, L"Please wait while preparing OS\n\r");
-//
-//#ifdef DEBUG
-//    SysTbl->BootServices->SetWatchdogTimer(0, 0, 0, NULL);
-//#endif
-//
-//    EFI_TIME now;
-//    Status = SysTbl->RuntimeServices->GetTime(&now, NULL);
-//    if (EFI_ERROR(Status)) {
-//        PrintLn(SysTbl, L"Failed to get system time, something is wrong...");
-//        return Status;
-//    }
-//
-//    while (1);
-//    return EFI_SUCCESS;
-//}

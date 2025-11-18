@@ -4,87 +4,67 @@
 #include <align.h>
 
 
+efi_status_t efi_load_memory_map(void **map_ptr, struct efi_memory_map_data *map_data)
+{
+    efi_status_t status;
+    void *ptr = NULL;
+    struct efi_memory_map_data tmp = {0};
 
-//efi_status_t efi_get_memory_map(struct efi_memory_map **map)
-//{
-//    struct efi_memory_map *m = NULL;
-//    uint32_t desc_version;
-//    uint64_t desc_size = 0;
-//    uint64_t map_size;
-//    uint64_t map_key;
-//
-//    *map = NULL;
-//
-//    const struct efi_boot_services *bs = 
-//        (const struct efi_boot_services*) ST->boot_services;
-//
-//    // First get the map size
-//    map_size = 0;
-//    efi_status_t status = bs->get_memory_map(&map_size, NULL, &map_key,
-//                                             &desc_size, &desc_version);
-//    if (status != EFI_BUFFER_TOO_SMALL) {
-//        return EFI_LOAD_ERROR;
-//    }
-//
-//    // Do some sanity checking
-//    if (desc_version != EFI_MEMORY_DESCRIPTOR_VERSION) {
-//        efi_puts("version differ\n");
-//        return EFI_LOAD_ERROR;
-//    }
-//
-//    if (desc_size != sizeof(struct efi_memory_desc)) {
-//        efi_puts("desc_size: ");
-//        efi_putd(desc_size);
-//        efi_puts(" , sizeof: ");
-//        efi_putd(sizeof(struct efi_memory_desc));
-//        efi_puts("\n");
-//        efi_puts("desc size differs, some alignment bogus stuff\n");
-//        return EFI_LOAD_ERROR;
-//    }
-//
-//    // FIXME: if we want to use the map after BootServicesExit, 
-//    // we should probably use EFI_ACPI_RECLAIM_MEMORY 
-//    // (and also install a configuration table)
-//    enum efi_memory_type type = EFI_LOADER_DATA;
-//
-//    // Allocate memory for memory map
-//    //
-//    // We add some additional descriptors since, according to the spec:
-//    // [...] the actual size of the buffer allocated for the next call to 
-//    // GetMemoryMap() should be bigger then[sic] the value returned in
-//    // MemoryMapSize, since the new buffer may potentially increase
-//    // memory map size.
-//    uint64_t size = map_size + desc_size * 32; 
-//
-//    status = bs->allocate_pool(type, 
-//                               sizeof(*m) + size,
-//                               (void**) &m);
-//    if (status != EFI_SUCCESS) {
-//        return status;
-//    }
-//
-//    m->buffer_size = m->map_size = size;
-//    status = bs->get_memory_map(&m->map_size, m->map, &m->map_key,
-//                                &m->desc_size, &m->desc_version);
-//    if (status != EFI_SUCCESS) {
-//        bs->free_pool((void*) m);
-//        return status;
-//    }
-//
-//    m->map_entries = m->map_size / m->desc_size;
-//
-//    *map = m;
-//    return EFI_SUCCESS;
-//}
+    const struct efi_boot_services *bs = 
+        (const struct efi_boot_services*) ST->boot_services;
+
+    if (map_ptr != NULL) {
+        *map_ptr = NULL;
+    }
+
+    // First get the map size
+    status = bs->get_memory_map(&tmp.map_size, NULL, &tmp.map_key,
+                                &tmp.desc_size, &tmp.desc_version);
+    if (status != EFI_BUFFER_TOO_SMALL) {
+        // wait, what...
+        return EFI_LOAD_ERROR;
+    }
+
+    if (map_ptr != NULL) {
+        // Allocate memory for memory map
+        // We add some additional descriptors since, according to the spec:
+        // [...] the actual size of the buffer allocated for the next call to 
+        // GetMemoryMap() should be bigger then[sic] the value returned in
+        // MemoryMapSize, since the new buffer may potentially increase
+        // memory map size.
+        uint64_t size = tmp.map_size + tmp.desc_size * 32;
+        ptr = efi_allocate_buffer(size, EFI_LOADER_DATA);
+        if (ptr == NULL) {
+            return EFI_OUT_OF_RESOURCES;
+        }
+
+        status = bs->get_memory_map(&tmp.map_size, ptr, &tmp.map_key,
+                                    &tmp.desc_size, &tmp.desc_version);
+        if (status != EFI_SUCCESS) {
+            efi_free_buffer(ptr);
+            return status;
+        }
+
+        *map_ptr = ptr;
+    }
+
+    *map_data = tmp;
+
+    return status;
+}
 
 
-void * efi_malloc(size_t size, enum efi_memory_type type)
+void * efi_allocate_buffer(size_t size, enum efi_memory_type type)
 {
     const struct efi_boot_services *bs = 
         (const struct efi_boot_services*) ST->boot_services;
 
     efi_status_t status;
     void *ptr = NULL;
+
+    if (type >= EFI_MAX_MEMORY_TYPE || type == EFI_PERSISTENT_MEMORY) {
+        return NULL;
+    }
 
     status = bs->allocate_pool(type, size, &ptr);
     if (status != EFI_SUCCESS) {
@@ -95,7 +75,7 @@ void * efi_malloc(size_t size, enum efi_memory_type type)
 }
 
 
-void efi_free(void *ptr)
+void efi_free_buffer(void *ptr)
 {
     if (ptr == NULL) {
         return;

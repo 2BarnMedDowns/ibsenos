@@ -86,8 +86,8 @@ struct efi_system_table
     uint64_t console_out;   // physical address to console output protocol
     uint64_t stderr_handle;
     uint64_t stderr;        // stderr is not really used
-    uint64_t rt;            // runtime services
-    uint64_t bt;            // boot services
+    uint64_t runtime_services;  // runtime services
+    uint64_t boot_services; // boot services
     uint32_t num_tables;    // number of configuration tables
     uint32_t pad2;          // manual alignment to 64-bit
     uint64_t tables;        // physical address to configuration tables

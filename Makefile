@@ -54,7 +54,7 @@ endef
 all: iso
 
 # Boot loader target
-$(eval $(call target,bootloader,BOOTX64.EFI,utils/string.c uefistub/init.c uefistub/console.c include/efistub.h include/efi.h uefistub/efi_console.h,uefi_entry))
+$(eval $(call target,bootloader,BOOTX64.EFI,utils/string.c uefistub/init.c uefistub/console.c uefistub/memory.c include/efistub.h include/efi.h uefistub/efi_console.h,uefi_entry))
 
 
 clean: $(TARGETS:%=%-clean)

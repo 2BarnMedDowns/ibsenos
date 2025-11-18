@@ -8,6 +8,15 @@
 const struct efi_system_table *ST = NULL;
 
 
+static void print_addr(uint64_t addr)
+{
+    char buffer[9];
+    u64tostr(addr, buffer, 16);
+    efi_puts("0x");
+    efi_puts(buffer);
+}
+
+
 static void draw_box(uint64_t x, uint64_t y, uint64_t w, uint64_t h)
 {
     const struct efi_simple_text_output_protocol *conout =
@@ -129,65 +138,30 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     console_out->set_attribute(console_out,
             EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
 
-    draw_box(2, 4, console_columns - 6, console_rows - 6);
-    console_out->set_cursor(console_out, 3, 5);
-
-    uint64_t numbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-                          10, 11, 12, 13, 14, 15, 16,
-                          35, 36, 37,
-                          UINT64_MAX - 1, UINT64_MAX,
-                          0xdeadbeef, 123456789, 255, 65535,
-                          4095, 4096};
-    int bases[] = {10, 16, 8, 2, 36};
-    int widths[] = {21, 17, 23, 65, 15};
-
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_WHITE, EFI_CONSOLE_BLACK));
-    for (size_t col = 0; col < array_size(bases); ++col) {
-        uint64_t x = 0;
-        for (size_t j = 0; j < col; ++j) {
-            x += widths[j];
-        }
-        console_out->set_cursor(console_out, 4 + x, 5);
-        efi_puts("base-");
-        u64tostr(bases[col], buf, 10);
-        efi_puts(buf);
-
-        console_out->set_cursor(console_out, 4 + x, 6);
-        memset(buf, '-', widths[col] - 1);
-        buf[widths[col]-1] = '\0';
-        efi_puts(buf);
-    }
-
-    console_out->set_attribute(console_out,
-            EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
-    for (size_t i = 0; i < array_size(numbers); ++i) {
-        uint64_t number = numbers[i];
-
-        for (size_t col = 0; col < array_size(bases); ++col) {
-            uint64_t x = 0;
-            for (size_t j = 0; j < col; ++j) {
-                x += widths[j];
-            }
-            
-            uint64_t w = widths[col];
-            char paddedbuf[w];
-            console_out->set_cursor(console_out, 4 + x, 7 + i);
-            int base = bases[col];
-            size_t digits = u64tostr(number, buf, base);
-            memset(paddedbuf, ' ', w - 1 - digits);
-            paddedbuf[w - digits - 1] = '\0';
-            strcat(paddedbuf, buf);
-            //strcpy(&paddedbuf[w - 1 - digits], buf);
-            efi_puts(paddedbuf);
-        }
-    }
-
-    console_out->set_cursor(console_out, 0, console_rows - 2);
-    strcpy(buf, "Hello, world!");
-    efi_puts("Reversed string: ");
-    efi_puts(strrev(buf));
     efi_puts("\n");
+
+    // Allocate some memory and try to access it
+    for (int i = 0; i < 2; ++i) {
+        efi_puts("Allocating memory...");
+
+        uint64_t phys_addr = 0;
+        status = efi_allocate_memory(2 * EFI_PAGE_SIZE, &phys_addr, 1 << 30);
+        
+        efi_puts(status == EFI_SUCCESS ? "SUCCESS" : "FAILED");
+        efi_puts("\n");
+        
+        if (status == EFI_SUCCESS) {
+            efi_puts("Address: ");
+            print_addr(phys_addr);
+        } else {
+            efi_puts("Error code: ");
+            print_addr(status); // trololo
+        }
+        efi_puts("\n");
+        efi_puts("\n");
+    }
+
+
 
     // TODO: set up boot services and stuff here
 

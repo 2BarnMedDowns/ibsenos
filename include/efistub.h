@@ -42,12 +42,18 @@ void efi_char16_puts(const uint16_t *str);
 void efi_puts(const char *str);
 
 
-efi_status_t efi_allocate_pages(size_t size,
-                                uint64_t *phys_addr, 
-                                size_t max);
+/*
+ * Allocate a range of memory (pages) below the address given by below_addr
+ */
+efi_status_t efi_allocate_memory(uint64_t size, 
+                                 uint64_t *phys_addr,
+                                 uint64_t below_addr);
 
 
-void efi_free(size_t size, uint64_t phys_addr);
+/*
+ * Free memory range.
+ */
+void efi_free_memory(uint64_t size, uint64_t phys_addr);
 
 
 #endif

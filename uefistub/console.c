@@ -31,7 +31,7 @@ static uint32_t utf8_to_utf32(const uint8_t **s8)
     }
 
     // Get the bits from the first octet
-    c32 = cx >> clen--;
+c32 = cx >> clen--;
     for (size_t i = 0; i < clen; ++i) {
         // trailing octets must have 10 in most significant bits
         cx = (*s8)[i] ^ 0x80;
@@ -121,3 +121,66 @@ void efi_put0h(uint64_t value)
     strrev(buf);
     efi_puts(buf);
 }
+
+
+void efi_console_reset(void)
+{
+    const struct efi_simple_text_output_protocol *conout =
+        (const struct efi_simple_text_output_protocol*) ST->console_out;
+
+    conout->reset(conout, 0);
+
+    // Identify console with largest rows * columns
+    // mode 0 which is 80x25 is default, so we can start looking from mode 1
+    uint64_t columns = 80; 
+    uint64_t rows = 25;
+    uint64_t mode = 0;
+
+    for (uint64_t i = 1; i < 64; ++i) {
+        uint64_t x = 0;
+        uint64_t y = 0;
+
+        efi_status_t status = conout->query_mode(conout, i, &x, &y);
+        if (status != EFI_SUCCESS) {
+            continue;
+        }
+
+        if (y * x > rows * columns && x >= columns) {
+            mode = i;
+            columns = x;
+            rows = y;
+        }
+    }
+
+    conout->set_mode(conout, mode);
+}
+
+
+
+void efi_console_clear_screen(void)
+{
+    const struct efi_simple_text_output_protocol *conout =
+        (const struct efi_simple_text_output_protocol*) ST->console_out;
+
+    conout->set_attribute(conout, EFI_CONSOLE_COLOR(EFI_CONSOLE_GRAY, EFI_CONSOLE_BLACK));
+    conout->clear_screen(conout);
+    conout->set_cursor(conout, 0, 0);
+}
+
+
+void efi_console_color(int color)
+{
+    uint64_t attr = EFI_CONSOLE_COLOR(color, EFI_CONSOLE_BLACK);
+
+    const struct efi_simple_text_output_protocol *conout =
+        (const struct efi_simple_text_output_protocol*) ST->console_out;
+
+    conout->set_attribute(conout, color);
+}
+
+
+void efi_console_restore(void)
+{
+    efi_console_color(EFI_CONSOLE_GRAY);
+}
+

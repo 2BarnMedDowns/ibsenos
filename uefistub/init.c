@@ -20,21 +20,28 @@ static void print_uefi_info(void)
     uint32_t fwrev_minor = (ST->fw_revision & 0xffff);
 
     efi_puts("UEFI revision: ");
+    
+    efi_console_color(EFI_CONSOLE_BRIGHTCYAN);
     efi_putd(uefi_major);
     efi_puts(".");
     efi_putd(uefi_minor);
     efi_puts(".");
     efi_putd(uefi_tertiary);
+    efi_console_restore();
     efi_puts("\n");
 
     efi_puts("Firmware vendor: ");
+    efi_console_color(EFI_CONSOLE_BRIGHTMAGENTA);
     efi_char16_puts((const uint16_t*) ST->fw_vendor);
+    efi_console_restore();
     efi_puts("\n");
 
     efi_puts("Firmware revision: ");
+    efi_console_color(EFI_CONSOLE_YELLOW);
     efi_putd(fwrev_major);
     efi_puts(".");
     efi_putd(fwrev_minor);
+    efi_console_restore();
     efi_puts("\n");
 
     efi_puts("\n");
@@ -56,6 +63,9 @@ efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
     }
 
     ST = systab;
+
+    efi_console_reset();
+    efi_console_clear_screen();
 
 #ifdef DEBUG
     print_uefi_info();

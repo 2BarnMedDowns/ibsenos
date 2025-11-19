@@ -32,7 +32,6 @@
     ( ((foreground) & 0xf) | (((background) & 0x7) << 4) )
 
 
-
 /*
  * EFI simple text output protocol
  * See section 12.4.1
@@ -99,5 +98,11 @@ void efi_puth(uint64_t value);
  * with leading zeros.
  */
 void efi_put0h(uint64_t value);
+
+
+void efi_console_reset(void);
+void efi_console_clear_screen(void);
+void efi_console_color(int color);
+void efi_console_restore(void);
 
 #endif

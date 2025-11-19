@@ -175,7 +175,7 @@ void efi_console_color(int color)
     const struct efi_simple_text_output_protocol *conout =
         (const struct efi_simple_text_output_protocol*) ST->console_out;
 
-    conout->set_attribute(conout, color);
+    conout->set_attribute(conout, attr);
 }
 
 

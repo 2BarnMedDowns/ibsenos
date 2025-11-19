@@ -53,7 +53,8 @@ TARGETS += $1
 $1: $$($1-build)
 
 $1-clean:
-	$$(RM) $$($1-build) $$($1-objs)
+	$$(RM) $$($1-objs)
+	$$(RM) $$($1-build)
 
 $$($1-build): $$($1-objs) 
 	@mkdir -p $$(dir $$@)
@@ -111,6 +112,8 @@ image: $(BUILD_DIR)/$(PROJECT).img
 
 
 # Create a CDROM ISO from the disk image
+# You can write this to an USB stick with dd:
+# sudo dd if=build/ibsenos.iso of=/dev/sdX bs=1M status=progress
 $(BUILD_DIR)/$(PROJECT).iso: $(BUILD_DIR)/$(PROJECT).img
 	@TEMPDIR=$$(mktemp -d) \
 	trap 'rm -rf $$TEMPDIR' EXIT INT TERM; \
@@ -119,7 +122,8 @@ $(BUILD_DIR)/$(PROJECT).iso: $(BUILD_DIR)/$(PROJECT).img
 
 
 # Create a disk image and format it with MSDOS file system
-# This is used by the EFI boot loader
+# You can write this to an USB stick with dd:
+# sudo dd if=build/ibsenos.img of=/dev/sdX bs=1M status=progress
 $(BUILD_DIR)/$(PROJECT).img: $(bootloader-build) 
 	dd if=/dev/zero of=$@ bs=1M count=32
 	mformat -i $@ ::

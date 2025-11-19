@@ -36,7 +36,9 @@ RELEASE_CFLAGS := -O2 -DNDEBUG
 
 
 # Helper function to determine if last build is the same build
-is_build = $(if $(filter $(BUILD_DIR)/.build,$(wildcard $(BUILD_DIR)/.build)),$(strip $(filter $1,$(file <$(BUILD_DIR)/.build))))
+build_config_exists = $(if $(filter $(BUILD_DIR)/.build,$(wildcard $(BUILD_DIR)/.build)),$(BUILD_DIR)/.build)
+get_build = $(if $(call build_config_exists),$(file <$(BUILD_DIR)/.build))
+is_build = $(strip $(filter $1,$(call get_build)))
 
 
 # Usage: $(call target,<target name>,<build name>,<space separated list of source files>,[entry point])
@@ -63,7 +65,10 @@ $$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(BUILD_DIR)/.b
 endef
 
 
+$(info $(if $(call build_config_exists),Build configuration is $(call get_build),Building using $(BUILD) configuration))
+
 .PHONY: all clean image iso make debug release .FORCE
+
 
 # Make a disk image that can be booted with Qemu
 all: iso
@@ -125,8 +130,9 @@ $(BUILD_DIR)/$(PROJECT).img: $(bootloader-build)
 
 # Write current build type to file
 $(BUILD_DIR)/.build: $(if $(call is_build,$(BUILD)),,.FORCE)
+	$(info Changing build configuration to $(BUILD))
 	@mkdir -p $(dir $@)
-	echo "$(strip $(BUILD))" > $@
+	@echo "$(strip $(BUILD))" > $@
 
 
 # TODO: Move Qemu launch stuff to a virsh script instead in the future

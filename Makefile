@@ -29,7 +29,7 @@ AS := $(CC)
 WARNINGS := all extra shadow unused error-implicit-function-declaration
 CFLAGS := -std=gnu11 -ffreestanding -nostartfiles -nostdinc -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
 CFLAGS += $(addprefix -W,$(WARNINGS)) 
-CFLAGS += -Iinclude/
+CFLAGS += -Iinclude/ -include include/debug.h
 LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
 DEBUG_CFLAGS := -O0 -DDEBUG
 RELEASE_CFLAGS := -O2 -DNDEBUG

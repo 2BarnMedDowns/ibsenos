@@ -31,7 +31,7 @@ static uint32_t utf8_to_utf32(const uint8_t **s8)
     }
 
     // Get the bits from the first octet
-c32 = cx >> clen--;
+    c32 = cx >> clen--;
     for (size_t i = 0; i < clen; ++i) {
         // trailing octets must have 10 in most significant bits
         cx = (*s8)[i] ^ 0x80;
@@ -128,6 +128,10 @@ void efi_console_reset(void)
     const struct efi_simple_text_output_protocol *conout =
         (const struct efi_simple_text_output_protocol*) ST->console_out;
 
+    const struct efi_simple_text_input_protocol *conin =
+        (const struct efi_simple_text_input_protocol*) ST->console_in;
+
+    conin->reset(conin);
     conout->reset(conout, 0);
 
     // Identify console with largest rows * columns
@@ -184,3 +188,43 @@ void efi_console_restore(void)
     efi_console_color(EFI_CONSOLE_GRAY);
 }
 
+
+efi_status_t efi_wait_for_key(uint32_t usecs, struct efi_input_key *key)
+{
+    efi_event_t events[2] = {NULL, NULL};
+    uint64_t event_idx = 3;
+
+    const struct efi_boot_services *bs =
+        (const struct efi_boot_services*) ST->boot_services;
+
+    const struct efi_simple_text_input_protocol *conin =
+        (const struct efi_simple_text_input_protocol*) ST->console_in;
+    if (conin == NULL) {
+        return EFI_UNSUPPORTED;
+    }
+
+    events[0] = conin->wait_for_key;
+
+    efi_status_t status = bs->create_event(EFI_EVT_TIMER, 0, NULL, NULL, &events[1]);
+    if (status != EFI_SUCCESS) {
+        return status;
+    }
+
+    // BootServices.SetTimer takes the time in 100 ns units
+    status = bs->set_timer(events[1], EFI_TIMER_RELATIVE, (uint64_t) 10 * usecs);
+    if (status != EFI_SUCCESS) {
+        return status;
+    }
+
+    status = bs->wait_for_event(2, events, &event_idx);
+    if (status == EFI_SUCCESS) {
+        if (event_idx == 0) {
+            status = conin->read_keystroke(conin, key);
+        } else {
+            status = EFI_TIMEOUT;
+        }
+    }
+
+    bs->close_event(events[1]);
+    return status;
+}

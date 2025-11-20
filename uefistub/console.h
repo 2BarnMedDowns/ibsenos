@@ -31,6 +31,27 @@
     ( ((foreground) & 0xf) | (((background) & 0x7) << 4) )
 
 
+struct efi_input_key
+{
+    uint16_t scan_code;
+    uint16_t unicode_char;
+};
+
+
+/*
+ * 12.2.3 EFI simple text input protocol
+ */
+struct efi_simple_text_input_protocol
+{
+    efi_status_t (__efiapi *reset)(const struct efi_simple_text_input_protocol*);
+
+    efi_status_t (__efiapi *read_keystroke)(const struct efi_simple_text_input_protocol*,
+                                            struct efi_input_key *key);
+
+    efi_event_t *wait_for_key;  // event to wait for using boot services' wait for event
+};
+
+
 /*
  * EFI simple text output protocol
  * See section 12.4.1
@@ -103,5 +124,9 @@ void efi_console_reset(void);
 void efi_console_clear_screen(void);
 void efi_console_color(int color);
 void efi_console_restore(void);
+
+
+efi_status_t efi_wait_for_key(uint32_t usecs, struct efi_input_key *key);
+
 
 #endif

@@ -249,6 +249,37 @@ typedef void (__efiapi *efi_event_notify_t)(efi_event_t *event,
                                             void *context);
 
 
+enum efi_locate_search_type
+{
+    EFI_ALL_HANDLES = 0,
+    EFI_BY_REGISTER_NOTIFY = 1,
+    BY_PROTOCOL = 3
+};
+
+
+/* Attributes for BootServices.OpenProtocol */
+#define EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL   0x00000001
+#define EFI_OPEN_PROTOCOL_GET_PROTOCOL         0x00000002
+#define EFI_OPEN_PROTOCOL_TEST_PROTOCOL        0x00000004
+#define EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER  0x00000008
+#define EFI_OPEN_PROTOCOL_BY_DRIVER            0x00000010
+#define EFI_OPEN_PROTOCOL_EXCLUSIVE            0x00000020
+
+
+/*
+ * Protocol information.
+ */
+struct efi_open_protocol_information_entry
+{
+    efi_handle_t agent;
+    efi_handle_t controller;
+    uint32_t attributes;
+    uint32_t pad0;
+    uint32_t open_count;
+    uint32_t pad1;
+};
+
+
 /*
  * EFI boot services table
  * Contains pointers to all the boot services.
@@ -313,7 +344,11 @@ struct efi_boot_services
     void*        HandleProtocol;                      // EFI 1.0+
     void*        Reserved;                            // EFI 1.0+
     void*        RegisterProtocolNotify;              // EFI  1.0+  // Requires Event & Timer Services
-    void*        LocateHandle;                        // EFI 1.0+
+    efi_status_t (__efiapi *locate_handle)(enum efi_locate_search_type,
+                                           const efi_guid_t *protocol,
+                                           void *search_key,
+                                           uint64_t *num_handles,
+                                           efi_handle_t *handles);   // must be free'd after
     void*        LocateDevicePath;                    // EFI 1.0+
     void*        InstallConfigurationTable;           // EFI 1.0+
 
@@ -342,17 +377,32 @@ struct efi_boot_services
     void*        ConnectController;     // EFI 1.1
     void*        DisconnectController;  // EFI 1.1+
 
-    //
     // Open and Close Protocol Services
-    void*        OpenProtocol;           // EFI 1.1+
-    void*        CloseProtocol;          // EFI 1.1+
-    void*        OpenProtocolInformation;// EFI 1.1+
+    efi_status_t (__efiapi *open_protocol)(efi_handle_t handle,
+                                           const efi_guid_t *protocol,
+                                           void **interface,
+                                           efi_handle_t agent,
+                                           efi_handle_t controller,
+                                           uint32_t attributes);
+    efi_status_t (__efiapi *close_protocol)(efi_handle_t handle,
+                                            const efi_guid_t *protocol,
+                                            efi_handle_t agent,
+                                            efi_handle_t controller);
+    efi_status_t (__efiapi *open_protocol_information)(efi_handle_t handle,
+                                                       const efi_guid_t *guid,
+                                                       struct efi_open_protocol_information_entry **entries,
+                                                       uint64_t *num_entries);
 
-    //
     // Library Services
     void*        ProtocolsPerHandle;     // EFI 1.1+
-    void*        LocateHandleBuffer;     // EFI 1.1+
-    void*        LocateProtocol;         // EFI 1.1+
+    efi_status_t (__efiapi *locate_handle_buffer)(enum efi_locate_search_type,
+                                                  const efi_guid_t *protocol,
+                                                  void *search_key,
+                                                  uint64_t *num_handles,  // number of handles returned
+                                                  efi_handle_t *handles); // must call BootServices.FreePool() when buffer is no longer required
+    efi_status_t (__efiapi *locate_protocol)(const efi_guid_t *protocol,
+                                             void *registration_key, // NULL means ignore
+                                             void **interface);
     void*        InstallMultipleProtocolInterfaces;    // EFI 1.1+
     void*        UninstallMultipleProtocolInterfaces;   // EFI 1.1+*
 

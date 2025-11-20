@@ -113,7 +113,7 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     efi_guid_t gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
     struct efi_graphics_output_protocol *gop;
 
-    status = bs->locate_protocol(&gopGuid, NULL, (void**)&gop);
+    status = BS->locate_protocol(&gopGuid, NULL, (void**)&gop);
     if(EFI_SUCCESS != status)
         efi_puts("Unable to locate GOP \n");
 

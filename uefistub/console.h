@@ -171,6 +171,8 @@ struct efi_graphics_output_protocol
                                  uint64_t width,
                                  uint64_t height,
                                  uint64_t delta);
+
+    struct efi_graphics_output_protocol_mode *mode;
 };
 
 

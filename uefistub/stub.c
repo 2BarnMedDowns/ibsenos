@@ -87,36 +87,14 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     disable_watchdog_timer();
 #endif
 
-    efi_puts("Press any key to continue or wait 10 seconds\n");
-    struct efi_input_key key = {0};
+    struct screen_info si;
 
-    status = efi_wait_for_key(10 * 1000000, &key);
-    if (status == EFI_TIMEOUT) {
-        efi_puts("You waited 10 seconds\n");
-    } else {
-        uint16_t str[2];
-        str[0] = key.unicode_char;
-        str[1] = 0;
-
-        efi_puts("You pressed: '");
-        efi_char16_puts(str);
-        efi_puts("'\n");
-        efi_puts("Scan code: ");
-        efi_put0h(key.scan_code);
-        efi_puts("\nUnicode char: ");
-        efi_put0h(key.unicode_char);
-        efi_puts("\n");
+    status = efi_setup_gop(&si);
+    if (status != EFI_SUCCESS) {
+        efi_puts("Failure\n");
     }
 
-    efi_puts("Bye\n");
-
-    efi_guid_t gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-    struct efi_graphics_output_protocol *gop;
-
-    status = BS->locate_protocol(&gopGuid, NULL, (void**)&gop);
-    if(EFI_SUCCESS != status)
-        efi_puts("Unable to locate GOP \n");
-
     // call ExitBootServices in future
+    efi_puts("Bye\n");
     for (;;) {}
 }

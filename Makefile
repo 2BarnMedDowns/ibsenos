@@ -35,6 +35,9 @@ DEBUG_CFLAGS := -O0 -DDEBUG
 RELEASE_CFLAGS := -O2 -DNDEBUG
 
 
+# Helper function to recursively find files
+rfind = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+
 # Helper function to determine if last build is the same build
 build_config_exists = $(if $(filter $(BUILD_DIR)/.build,$(wildcard $(BUILD_DIR)/.build)),$(BUILD_DIR)/.build)
 get_build = $(if $(call build_config_exists),$(file <$(BUILD_DIR)/.build))
@@ -60,7 +63,7 @@ $$($1-build): $$($1-objs)
 	@mkdir -p $$(dir $$@)
 	$$(LD) $$(LDFLAGS) $(if $4,-e $4) -o $$@ $$^
 
-$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(BUILD_DIR)/.build
+$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(BUILD_DIR)/.build $$(call rfind,include/,*.h)
 	@mkdir -p $$(dir $$@)
 	$$(CC) $$(CFLAGS) -c -o $$@ $$< $$(if $$(strip $$(filter debug,$$(BUILD))),$$(DEBUG_CFLAGS),$$(RELEASE_CFLAGS))
 endef
@@ -94,8 +97,8 @@ $(eval $(call target,bootloader,BOOTX64.EFI, \
 	uefistub/stub.c \
 	uefistub/console.c \
 	uefistub/memory.c \
+	uefistub/gop.c \
 	uefistub/systab.h \
-	include/efi.h \
 	uefistub/memory.h \
 	uefistub/console.h \
 	,uefistub_pe_entry))

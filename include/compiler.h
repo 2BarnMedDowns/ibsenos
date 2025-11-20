@@ -40,7 +40,6 @@
     })
 
 
-
 #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
 
 #define __aligned(x) __attribute__((aligned(x)))
@@ -68,6 +67,10 @@
 #define __nocast __attribute__((nocast))
 
 
+#define __always_inline \
+    inline __attribute__((__always_inline__))
+
+
 #define noinline __attribute__((noinline))
 
 
@@ -84,5 +87,9 @@
     asm volatile (""); \
     __builtin_unreachable(); \
 } while (0)
+
+
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 #endif

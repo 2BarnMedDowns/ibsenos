@@ -112,6 +112,7 @@ struct efi_system_table
  * EFI configuration table and GUID definitions
  */
 #define NULL_GUID                               EFI_GUID(0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+#define EFI_CONSOLE_OUT_DEVICE_GUID             EFI_GUID(0xd3b36f2c, 0xd551, 0x11d4, 0x9a, 0x46, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d)
 #define EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID    EFI_GUID(0x387477c2, 0x69c7, 0x11d2, 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b)
 #define EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID     EFI_GUID(0x387477c1, 0x69c7, 0x11d2, 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b)
 #define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID       EFI_GUID(0x9042a9de, 0x23dc, 0x4a38, 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a)
@@ -251,9 +252,9 @@ typedef void (__efiapi *efi_event_notify_t)(efi_event_t *event,
 
 enum efi_locate_search_type
 {
-    EFI_ALL_HANDLES = 0,
-    EFI_BY_REGISTER_NOTIFY = 1,
-    BY_PROTOCOL = 3
+    EFI_LOCATE_ALL_HANDLES = 0,
+    EFI_LOCATE_BY_REGISTER_NOTIFY = 1,
+    EFI_LOCATE_BY_PROTOCOL = 2
 };
 
 
@@ -341,7 +342,9 @@ struct efi_boot_services
                                                           void *old_interface,
                                                           void *new_interface);
 
-    void*        HandleProtocol;                      // EFI 1.0+
+    efi_status_t (__efiapi *handle_protocol)(efi_handle_t handle,
+                                             const efi_guid_t *protocol,
+                                             void **interface);
     void*        Reserved;                            // EFI 1.0+
     void*        RegisterProtocolNotify;              // EFI  1.0+  // Requires Event & Timer Services
     efi_status_t (__efiapi *locate_handle)(enum efi_locate_search_type,
@@ -399,7 +402,7 @@ struct efi_boot_services
                                                   const efi_guid_t *protocol,
                                                   void *search_key,
                                                   uint64_t *num_handles,  // number of handles returned
-                                                  efi_handle_t *handles); // must call BootServices.FreePool() when buffer is no longer required
+                                                  efi_handle_t **handles); // must call BootServices.FreePool() when buffer is no longer required
     efi_status_t (__efiapi *locate_protocol)(const efi_guid_t *protocol,
                                              void *registration_key, // NULL means ignore
                                              void **interface);

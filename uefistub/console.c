@@ -96,6 +96,13 @@ void efi_char16_puts(const uint16_t *str)
 }
 
 
+void efi_char16_putc(uint16_t c)
+{
+    uint16_t buf[2] = {c, '\0'};
+    efi_char16_puts(buf);
+}
+
+
 void efi_putd(uint64_t value)
 {
     char buf[21];
@@ -117,6 +124,7 @@ void efi_put0h(uint64_t value)
 {
     char buf[17];
     size_t digits = u64tostr(value, buf, 16);
+    strrev(buf);
     memset(&buf[digits], '0', 15 - digits);
     buf[16] = '\0';
     strrev(buf);

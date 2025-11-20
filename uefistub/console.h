@@ -7,6 +7,7 @@
  */
 
 #include <efi.h>
+#include <boot.h>
 
 
 #define EFI_CONSOLE_BLACK           0x00
@@ -95,8 +96,8 @@ struct efi_simple_text_output_protocol
  */
 enum efi_graphics_pixel_format
 {
-    PIXEL_RED_GREEN_BLUE_RESERVED_8BIT_PER_COLOR = 0,
-    PIXEL_BLUE_GREEN_RED_RESERVED_8BIT_PER_COLOR = 1,
+    PIXEL_RGB_RESERVED_8BIT_PER_COLOR = 0,
+    PIXEL_BGR_RESERVED_8BIT_PER_COLOR = 1,
     PIXEL_BIT_MASK = 2,
     PIXEL_BLT_ONLY = 3,
     PIXEL_FORMAT_MAX
@@ -110,7 +111,7 @@ struct efi_pixel_bitmask
     uint32_t reserved_mask;
 };
 
-struct efi_graphics_output_mode_information
+struct efi_graphics_output_mode_info
 {
     uint32_t version;
     uint32_t horizontal_resolution;
@@ -145,18 +146,19 @@ struct efi_graphics_output_protocol_mode
 {
     uint32_t max_mode;
     uint32_t mode;
-    struct efi_graphics_output_mode_information *info;
+    const struct efi_graphics_output_mode_info *info;
     uint64_t size_of_info;
     uint64_t frame_buffer_base; // EFI_PHYSICAL_ADDRESS -> typedef UINT64 EFI_PHYSICAL_ADDRESS
     uint64_t frame_buffer_size;
 };
 
+
 struct efi_graphics_output_protocol
 {
     efi_status_t (__efiapi *query_mode)(const struct efi_graphics_output_protocol*,
                                         uint32_t mode_number,
-                                        uint64_t *size_of_info,
-                                        struct efi_graphics_output_mode_information **info);
+                                        uint64_t *info_size,
+                                        struct efi_graphics_output_mode_info **info);
 
     efi_status_t (__efiapi *set_mode)(const struct efi_graphics_output_protocol*,
                                       uint32_t mode_number);
@@ -171,6 +173,8 @@ struct efi_graphics_output_protocol
                                  uint64_t width,
                                  uint64_t height,
                                  uint64_t delta);
+
+    const struct efi_graphics_output_protocol_mode *mode;
 };
 
 
@@ -178,6 +182,12 @@ struct efi_graphics_output_protocol
  * Write wide-char string to the console.
  */
 void efi_char16_puts(const uint16_t *str);
+
+
+/*
+ * Write a wide-char character to the console.
+ */
+void efi_char16_putc(uint16_t c);
 
 
 /*
@@ -214,7 +224,10 @@ void efi_console_restore(void);
 efi_status_t efi_wait_for_key(uint32_t usecs, struct efi_input_key *key);
 
 
-efi_status_t efi_setup_gop(void);
+/*
+ * Setup the graphics output protocol.
+ */
+efi_status_t efi_setup_gop(struct screen_info *si);
 
 
 #endif

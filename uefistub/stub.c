@@ -49,17 +49,31 @@ static void print_uefi_info(void)
 #endif
 
 
+
+static void __noreturn efi_exit(efi_handle_t handle, efi_status_t status)
+{
+    const struct efi_boot_services *bs = 
+        (const struct efi_boot_services*) ST->boot_services;
+
+    bs->exit(handle, status, 0, NULL);
+
+    for (;;) {
+        asm("hlt");
+    }
+}
+
+
 /*
  * EFI image entry point
  * https://uefi.org/specs/UEFI/2.11/04_EFI_System_Table.html#uefi-image-entry-point
  */
-efi_status_t __efiapi uefistub_pe_entry(void *, struct efi_system_table *systab)
+efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struct efi_system_table *systab)
 {
     efi_status_t status;
     ST = NULL;
 
     if (systab->hdr.signature != EFI_SYSTEM_TABLE_SIGNATURE) {
-        return EFI_INVALID_PARAMETER;
+        efi_exit(imghandle, EFI_INVALID_PARAMETER);
     }
 
     ST = systab;

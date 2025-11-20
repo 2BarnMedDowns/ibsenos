@@ -23,6 +23,16 @@ typedef void * efi_handle_t;
 #define __efiapi __attribute__((ms_abi))
 
 
+#define __efi_nargs(...) __VA_NARGS__(__VA_ARGS__)
+
+
+#if defined(__MINGW32__)
+#define efiapi_call(func, ...) func(__VA_ARGS__)
+#else
+#error "Unsupported cdecl"
+#endif
+
+
 /*
  * Some EFI status/error codes.
  */
@@ -259,7 +269,10 @@ struct efi_boot_services
     // Image Services
     void*        LoadImage;        // EFI 1.0+
     void*        StartImage;       // EFI 1.0+
-    void*        Exit;             // EFI 1.0+
+    efi_status_t (__efiapi *exit)(efi_handle_t handle,
+                                  efi_status_t status, 
+                                  uint64_t exit_data_size, 
+                                  void *exit_data);
     void*        UnloadImage;      // EFI 1.0+
     void*        ExitBootServices; // EFI 1.0+
 

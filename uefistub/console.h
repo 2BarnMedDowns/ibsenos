@@ -90,6 +90,91 @@ struct efi_simple_text_output_protocol
 
 
 /*
+ * EFI graphics output protocol
+ * See section 12.9.1
+ */
+enum efi_graphics_pixel_format
+{
+    PIXEL_RED_GREEN_BLUE_RESERVED_8BIT_PER_COLOR = 0,
+    PIXEL_BLUE_GREEN_RED_RESERVED_8BIT_PER_COLOR = 1,
+    PIXEL_BIT_MASK = 2,
+    PIXEL_BLT_ONLY = 3,
+    PIXEL_FORMAT_MAX
+};
+
+struct efi_pixel_bitmask
+{
+    uint32_t red_mask;
+    uint32_t green_mask;
+    uint32_t blue_mask;
+    uint32_t reserved_mask;
+};
+
+struct efi_graphics_output_mode_information
+{
+    uint32_t version;
+    uint32_t horizontal_resolution;
+    uint32_t vertical_resolution;
+    enum efi_graphics_pixel_format pixel_format;
+    struct efi_pixel_bitmask pixel_information;
+    uint32_t pixel_per_scanline;
+};
+
+struct efi_graphics_output_blt_pixel
+{
+    uint8_t blue;
+    uint8_t green;
+    uint8_t red;
+    uint8_t reserved;
+};
+
+enum efi_graphics_output_blt_operation {
+    EFI_BLT_VIDEO_FILL = 0,
+    EFI_BLT_VIDEO_TO_BLT_BUFFER = 1,
+    EFI_BLT_BUFFER_TO_VIDEO = 2,
+    EFI_BLT_VIDEO_TO_VIDEO = 3,
+    EFI_GRAPHICS_OUTPUT_BLT_OPERATION_MAX
+};
+
+/*
+ * Base address of graphics linear frame buffer.
+ * Info contains information required to allow software to draw directly to the frame buffer without using Blt().
+ * Offset zero in FrameBufferBase represents the upper left pixel of the display.
+ */
+struct efi_graphics_output_protocol_mode
+{
+    uint32_t max_mode;
+    uint32_t mode;
+    struct efi_graphics_output_mode_information *info;
+    uint64_t size_of_info;
+    uint64_t frame_buffer_base; // EFI_PHYSICAL_ADDRESS -> typedef UINT64 EFI_PHYSICAL_ADDRESS
+    uint64_t frame_buffer_size;
+};
+
+struct efi_graphics_output_protocol
+{
+    efi_status_t (__efiapi *query_mode)(struct efi_graphics_output_protocol *this,
+                                        uint32_t mode_number,
+                                        uint64_t *size_of_info,
+                                        struct efi_graphics_output_mode_information **info);
+
+    efi_status_t (__efiapi *set_mode)(struct efi_graphics_output_protocol *this,
+                                      uint32_t mode_number);
+
+    efi_status_t (__efiapi *blt)(struct efi_graphics_output_protocol *this,
+                                 struct efi_graphics_output_blt_pixel *blt_buffer,
+                                 enum efi_graphics_output_blt_operation blt_operation,
+                                 uint64_t source_x,
+                                 uint64_t source_y,
+                                 uint64_t destination_x,
+                                 uint64_t destination_y,
+                                 uint64_t width,
+                                 uint64_t height,
+                                 uint64_t delta);
+};
+
+
+/*
  * Write wide-char string to the console.
  */
 void efi_char16_puts(const uint16_t *str);

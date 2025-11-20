@@ -28,9 +28,9 @@ AS := $(CC)
 
 WARNINGS := all extra shadow unused error-implicit-function-declaration
 CFLAGS := -std=gnu11 -ffreestanding -nostartfiles -nostdinc -nostdlib -fno-stack-protector -fpic -fshort-wchar -mno-red-zone
-CFLAGS += $(addprefix -W,$(WARNINGS)) 
+CFLAGS += $(addprefix -W,$(WARNINGS))
 CFLAGS += -Iinclude/ -include include/debug.h
-LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10 
+LDFLAGS := -Wl,-dll -shared -Wl,--subsystem,10
 DEBUG_CFLAGS := -O0 -DDEBUG
 RELEASE_CFLAGS := -O2 -DNDEBUG
 
@@ -56,11 +56,11 @@ $1-clean:
 	$$(RM) $$($1-objs)
 	$$(RM) $$($1-build)
 
-$$($1-build): $$($1-objs) 
+$$($1-build): $$($1-objs)
 	@mkdir -p $$(dir $$@)
 	$$(LD) $$(LDFLAGS) $(if $4,-e $4) -o $$@ $$^
 
-$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(BUILD_DIR)/.build 
+$$($1-objs): $$(BUILD_DIR)/%.o : %.c $$(filter %.h,$$($1-srcs)) $$(BUILD_DIR)/.build
 	@mkdir -p $$(dir $$@)
 	$$(CC) $$(CFLAGS) -c -o $$@ $$< $$(if $$(strip $$(filter debug,$$(BUILD))),$$(DEBUG_CFLAGS),$$(RELEASE_CFLAGS))
 endef
@@ -76,7 +76,7 @@ all: iso
 
 
 # Empty target to force rebuild
-.FORCE: ; 
+.FORCE: ;
 
 debug: BUILD = debug
 debug: $(if $(call is_build,debug),,clean) all $(BUILD_DIR)/.build
@@ -118,13 +118,13 @@ $(BUILD_DIR)/$(PROJECT).iso: $(BUILD_DIR)/$(PROJECT).img
 	@TEMPDIR=$$(mktemp -d) \
 	trap 'rm -rf $$TEMPDIR' EXIT INT TERM; \
 	cp $< $$TEMPDIR/$(PROJECT).img ; \
-	xorriso -as mkisofs -R -f -e $(PROJECT).img $< -no-emul-boot -o $@ $$TEMPDIR 
+	xorriso -as mkisofs -R -f -e $(PROJECT).img $< -no-emul-boot -o $@ $$TEMPDIR
 
 
 # Create a disk image and format it with MSDOS file system
 # You can write this to an USB stick with dd:
 # sudo dd if=build/ibsenos.img of=/dev/sdX bs=1M status=progress
-$(BUILD_DIR)/$(PROJECT).img: $(bootloader-build) 
+$(BUILD_DIR)/$(PROJECT).img: $(bootloader-build)
 	dd if=/dev/zero of=$@ bs=1M count=32
 	mformat -i $@ ::
 	mmd -i $@ ::/EFI
@@ -152,7 +152,7 @@ qemu-usb: $(BUILD_DIR)/$(PROJECT).img
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) \
 		-drive if=none,format=raw,file=$<,id=stick \
 		-device nec-usb-xhci,id=xhci \
-		-device usb-storage,bus=xhci.0,drive=stick,removable=on 
+		-device usb-storage,bus=xhci.0,drive=stick,removable=on
 
 
 # Short-hand for launching a Qemu instance without graphics (terminal)
@@ -167,4 +167,3 @@ qemu-nographic: $(BUILD_DIR)/$(PROJECT).img
 qemu: $(BUILD_DIR)/$(PROJECT).img
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) \
 		-drive format=raw,file=$<
-

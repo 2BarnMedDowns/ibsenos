@@ -96,7 +96,7 @@ $(eval $(call target,bootloader,BOOTX64.EFI, \
 	include/efi.h \
 	uefistub/memory.h \
 	uefistub/console.h \
-	,efi_pe_entry))
+	,uefistub_pe_entry))
 
 
 clean: $(TARGETS:%=%-clean)

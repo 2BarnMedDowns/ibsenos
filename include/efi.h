@@ -331,8 +331,11 @@ struct efi_boot_services
     //
     // Miscellaneous Services
     void*        GetNextMonotonicCount; // EFI 1.0+
-    void*        Stall;                 // EFI 1.0+
-    void*        SetWatchdogTimer;      // EFI 1.0+
+    efi_status_t (__efiapi *stall)(uint64_t usecs);
+    efi_status_t (__efiapi *set_watchdog_timer)(uint64_t timeout,
+                                                uint64_t watchdog_code, // watchdog timer code
+                                                uint64_t data_size,     // size of data (in bytes)
+                                                const uint16_t *data);  // null-terminated string to indicate watchdog event
 
     //
     // DriverSupport Services
@@ -353,14 +356,14 @@ struct efi_boot_services
     void*        InstallMultipleProtocolInterfaces;    // EFI 1.1+
     void*        UninstallMultipleProtocolInterfaces;   // EFI 1.1+*
 
-    //
     // 32-bit CRC Services
-    void*        CalculateCrc32;     // EFI 1.1+
+    efi_status_t (__efiapi *calculate_crc32)(const void *data,
+                                             uint64_t data_size,
+                                             uint32_t *crc32);
 
-    //
     // Miscellaneous Services
-    void*        CopyMem;        // EFI 1.1+
-    void*        SetMem;         // EFI 1.1+
+    void (__efiapi *copy_mem)(void *destination, const void* source, uint64_t length);
+    void (__efiapi *set_mem)(void *buffer, uint64_t size, uint8_t value);
     efi_status_t (__efiapi *create_event_ex)(uint32_t event_type, 
                                              uint64_t notify_tpl,
                                              efi_event_notify_t notify_function,

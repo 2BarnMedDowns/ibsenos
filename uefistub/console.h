@@ -153,15 +153,15 @@ struct efi_graphics_output_protocol_mode
 
 struct efi_graphics_output_protocol
 {
-    efi_status_t (__efiapi *query_mode)(struct efi_graphics_output_protocol *this,
+    efi_status_t (__efiapi *query_mode)(const struct efi_graphics_output_protocol*,
                                         uint32_t mode_number,
                                         uint64_t *size_of_info,
                                         struct efi_graphics_output_mode_information **info);
 
-    efi_status_t (__efiapi *set_mode)(struct efi_graphics_output_protocol *this,
+    efi_status_t (__efiapi *set_mode)(const struct efi_graphics_output_protocol*,
                                       uint32_t mode_number);
 
-    efi_status_t (__efiapi *blt)(struct efi_graphics_output_protocol *this,
+    efi_status_t (__efiapi *blt)(const struct efi_graphics_output_protocol*,
                                  struct efi_graphics_output_blt_pixel *blt_buffer,
                                  enum efi_graphics_output_blt_operation blt_operation,
                                  uint64_t source_x,

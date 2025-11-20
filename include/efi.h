@@ -330,6 +330,4 @@ struct efi_boot_services
 };
 
 
-#define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID
-
 #endif

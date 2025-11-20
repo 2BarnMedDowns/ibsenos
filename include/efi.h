@@ -15,6 +15,7 @@
 /* Some EFI types */
 typedef uint64_t efi_status_t;
 typedef void * efi_handle_t;
+typedef void * efi_event_t;
 
 
 /*
@@ -112,6 +113,7 @@ struct efi_system_table
  */
 #define NULL_GUID                               EFI_GUID(0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 #define EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID    EFI_GUID(0x387477c2, 0x69c7, 0x11d2, 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b)
+#define EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID     EFI_GUID(0x387477c1, 0x69c7, 0x11d2, 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b)
 #define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID       EFI_GUID(0x9042a9de, 0x23dc, 0x4a38, 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a)
 
 
@@ -131,6 +133,25 @@ struct efi_config_table
 #define EFI_TPL_CALLBACK	8
 #define EFI_TPL_NOTIFY		16
 #define EFI_TPL_HIGH_LEVEL	31
+
+/*
+ * EFI event types
+ * These types can be OR'd together as needed.
+ */
+#define EFI_EVT_TIMER                           0x80000000
+#define EFI_EVT_RUNTIME                         0x40000000
+#define EFI_EVT_NOTIFY_WAIT                     0x00000100
+#define EFI_EVT_NOTIFY_SIGNAL                   0x00000200
+#define EFI_EVT_SIGNAL_EXIT_BOOT_SERVICES       0x00000201
+#define EFI_EVT_SIGNAL_VIRTUAL_ADDRESS_CHANGE   0x00000202
+
+
+enum efi_timer_delay
+{
+    EFI_TIMER_CANCEL = 0,
+    EFI_TIMER_PERIODIC = 1,
+    EFI_TIMER_RELATIVE = 2
+};
 
 
 /*
@@ -171,9 +192,10 @@ enum efi_memory_type
     EFI_MAX_MEMORY_TYPE
 };
 
-enum efi_interface_type {
+
+enum efi_interface_type
+{
     EFI_NATIVE_INTERFACE = 0,
-    EFI_INTERFACE_TYPE
 };
 
 
@@ -221,6 +243,13 @@ struct efi_memory_desc
 
 
 /*
+ * Event notification callback.
+ */
+typedef void (__efiapi *efi_event_notify_t)(efi_event_t *event, 
+                                            void *context);
+
+
+/*
  * EFI boot services table
  * Contains pointers to all the boot services.
  * See section 4.4
@@ -250,28 +279,34 @@ struct efi_boot_services
     efi_status_t (__efiapi *allocate_pool)(enum efi_memory_type pool_type, uint64_t size, void **buffer);
     efi_status_t (__efiapi *free_pool)(void *memory);
 
-    //
     // Event & Timer Services
-    void*        CreateEvent;    // EFI 1.0+
-    void*        SetTimer;       // EFI 1.0+
-    void*        WaitForEvent;   // EFI 1.0+
-    void*        SignalEvent;    // EFI 1.0+
-    void*        CloseEvent;     // EFI 1.0+
-    void*        CheckEvent;     // EFI 1.0+
+    efi_status_t (__efiapi *create_event)(uint32_t event_type,
+                                          uint64_t notify_tpl,
+                                          efi_event_notify_t notify_function,
+                                          void *notify_context,
+                                          efi_event_t *event);
+    efi_status_t (__efiapi *set_timer)(efi_event_t event,
+                                       enum efi_timer_delay type,
+                                       uint64_t trigger_time);
+    efi_status_t (__efiapi *wait_for_event)(uint64_t num_events,  // number of events in event array
+                                            efi_event_t *events,  // event array
+                                            uint64_t *idx);
+    efi_status_t (__efiapi *signal_event)(efi_event_t event);
+    efi_status_t (__efiapi *close_event)(efi_event_t event);
+    efi_status_t (__efiapi *check_event)(efi_event_t event);
 
-    // //
-    // // Protocol Handler Services
-    efi_status_t (__efiapi *install_protocol_interface)(void **handle,
-                                                        efi_guid_t *protocol,
-                                                        enum efi_interface_type interface_type,
+    // Protocol Handler Services
+    efi_status_t (__efiapi *install_protocol_interface)(efi_handle_t *handle,
+                                                        const efi_guid_t *protocol,
+                                                        enum efi_interface_type interface_type, // must always be 0
                                                         void *interface);
 
-    efi_status_t (__efiapi *uninstall_protocol_interface)(void *handle,
-                                                          efi_guid_t *protocol,
+    efi_status_t (__efiapi *uninstall_protocol_interface)(efi_handle_t handle,
+                                                          const efi_guid_t *protocol,
                                                           void *interface);
 
-    efi_status_t (__efiapi *reinstall_protocol_interface)(void *handle,
-                                                          efi_guid_t *protocol,
+    efi_status_t (__efiapi *reinstall_protocol_interface)(efi_handle_t handle,
+                                                          const efi_guid_t *protocol,
                                                           void *old_interface,
                                                           void *new_interface);
 
@@ -326,7 +361,12 @@ struct efi_boot_services
     // Miscellaneous Services
     void*        CopyMem;        // EFI 1.1+
     void*        SetMem;         // EFI 1.1+
-    void*        CreateEventEx;  // UEFI 2.0+
+    efi_status_t (__efiapi *create_event_ex)(uint32_t event_type, 
+                                             uint64_t notify_tpl,
+                                             efi_event_notify_t notify_function,
+                                             void *notify_context,
+                                             const efi_guid_t *event_group,
+                                             efi_event_t *event);
 };
 
 

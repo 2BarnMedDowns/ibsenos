@@ -1,6 +1,6 @@
 #include <efi.h>
-#include "efistub.h"
-#include "efi_console.h"
+#include "memory.h"
+#include "console.h"
 #include <inttypes.h>
 #include <string.h>
 
@@ -53,7 +53,7 @@ static void print_uefi_info(void)
  * EFI image entry point
  * https://uefi.org/specs/UEFI/2.11/04_EFI_System_Table.html#uefi-image-entry-point
  */
-efi_status_t __efiapi uefi_entry(void *, struct efi_system_table *systab)
+efi_status_t __efiapi uefistub_pe_entry(void *, struct efi_system_table *systab)
 {
     efi_status_t status;
     ST = NULL;

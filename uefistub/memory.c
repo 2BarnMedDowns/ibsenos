@@ -1,4 +1,4 @@
-#include "efistub.h"
+#include "memory.h"
 #include <cdefs.h>
 #include <efi.h>
 #include <align.h>

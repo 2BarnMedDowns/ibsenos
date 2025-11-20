@@ -90,13 +90,13 @@ release: $(if $(call is_build,release),,clean) all $(BUILD_DIR)/.build
 # Boot loader target
 $(eval $(call target,bootloader,BOOTX64.EFI, \
 	utils/string.c \
-	uefistub/init.c \
+	uefistub/stub.c \
 	uefistub/console.c \
 	uefistub/memory.c \
 	include/efi.h \
-	uefistub/efistub.h \
-	uefistub/efi_console.h \
-	,uefi_entry))
+	uefistub/memory.h \
+	uefistub/console.h \
+	,efi_pe_entry))
 
 
 clean: $(TARGETS:%=%-clean)

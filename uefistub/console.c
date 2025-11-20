@@ -1,5 +1,5 @@
-#include "efi_console.h"
-#include "efistub.h"
+#include "console.h"
+#include "memory.h"
 #include <efi.h>
 #include <inttypes.h>
 #include <cdefs.h>

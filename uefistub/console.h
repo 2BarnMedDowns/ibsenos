@@ -7,7 +7,6 @@
  */
 
 #include <efi.h>
-#include "efistub.h"
 
 
 #define EFI_CONSOLE_BLACK           0x00

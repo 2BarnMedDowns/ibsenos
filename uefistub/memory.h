@@ -1,12 +1,8 @@
-/*
- * EFI library stub functions.
- */
-#ifndef __IBSENOS_UEFISTUB_EFI_STUB_LIBRARY_H__
-#define __IBSENOS_UEFISTUB_EFI_STUB_LIBRARY_H__
+#ifndef __IBSENOS_UEFISTUB_MEMORY_H__
+#define __IBSENOS_UEFISTUB_MEMORY_H__
 
 #include <efi.h>
 #include <inttypes.h>
-#include "efi_console.h"
 
 
 extern const struct efi_system_table *ST;

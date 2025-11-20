@@ -1,3 +1,4 @@
+#include "systab.h"
 #include "console.h"
 #include "memory.h"
 #include <efi.h>

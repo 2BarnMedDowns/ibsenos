@@ -214,4 +214,7 @@ void efi_console_restore(void);
 efi_status_t efi_wait_for_key(uint32_t usecs, struct efi_input_key *key);
 
 
+efi_status_t efi_setup_gop(void);
+
+
 #endif

@@ -1,3 +1,4 @@
+#include "systab.h"
 #include "memory.h"
 #include <cdefs.h>
 #include <efi.h>

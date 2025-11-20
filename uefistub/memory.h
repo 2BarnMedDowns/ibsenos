@@ -5,9 +5,6 @@
 #include <inttypes.h>
 
 
-extern const struct efi_system_table *ST;
-
-
 struct efi_memory_map_data
 {
     uint64_t phys_map;      // physical address

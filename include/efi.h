@@ -108,6 +108,23 @@ struct efi_system_table
 
 
 /* 
+ * EFI configuration table and GUID definitions
+ */
+#define NULL_GUID                               EFI_GUID(0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+#define EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID    EFI_GUID(0x387477c2, 0x69c7, 0x11d2, 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b)
+#define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID       EFI_GUID(0x9042a9de, 0x23dc, 0x4a38, 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a)
+
+
+struct efi_config_table
+{
+    efi_guid_t guid;    // VendorGuid
+    uint64_t table;     // VendorTable
+};
+
+
+
+
+/* 
  * EFI task priority levels
  */
 #define EFI_TPL_APPLICATION	4
@@ -311,5 +328,8 @@ struct efi_boot_services
     void*        SetMem;         // EFI 1.1+
     void*        CreateEventEx;  // UEFI 2.0+
 };
+
+
+#define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID
 
 #endif

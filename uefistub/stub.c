@@ -6,6 +6,7 @@
 
 
 const struct efi_system_table *ST = NULL;
+const struct efi_boot_services *bs = NULL;
 
 
 #ifdef DEBUG
@@ -20,7 +21,7 @@ static void print_uefi_info(void)
     uint32_t fwrev_minor = (ST->fw_revision & 0xffff);
 
     efi_puts("UEFI revision: ");
-    
+
     efi_console_color(EFI_CONSOLE_BRIGHTCYAN);
     efi_putd(uefi_major);
     efi_puts(".");
@@ -51,7 +52,7 @@ static void print_uefi_info(void)
 
 static void __unused disable_watchdog_timer(void)
 {
-    const struct efi_boot_services *bs = 
+    const struct efi_boot_services *bs =
         (const struct efi_boot_services*) ST->boot_services;
     bs->set_watchdog_timer(0, 0, 0, NULL);
 }
@@ -59,7 +60,7 @@ static void __unused disable_watchdog_timer(void)
 
 static void __noreturn efi_exit(efi_handle_t handle, efi_status_t status)
 {
-    const struct efi_boot_services *bs = 
+    const struct efi_boot_services *bs =
         (const struct efi_boot_services*) ST->boot_services;
 
     bs->exit(handle, status, 0, NULL);
@@ -84,6 +85,7 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     }
 
     ST = systab;
+    bs = (const struct efi_boot_services*) ST->boot_services;
 
     efi_console_reset();
     efi_console_clear_screen();
@@ -115,6 +117,13 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     }
 
     efi_puts("Bye\n");
+
+    efi_guid_t gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+    struct efi_graphics_output_protocol *gop;
+
+    status = bs->locate_protocol(&gopGuid, NULL, (void**)&gop);
+    if(EFI_SUCCESS != status)
+        efi_puts("Unable to locate GOP \n");
 
     // call ExitBootServices in future
     for (;;) {}

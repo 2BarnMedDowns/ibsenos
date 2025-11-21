@@ -251,10 +251,6 @@ static void set_gop_mode(struct efi_graphics_output_protocol *gop, enum graphics
     uint32_t current_mode = mode->mode;
     uint32_t new_mode = current_mode;
 
-#ifdef DEBUG
-    print_modes_list(gop);
-#endif
-
     switch (requested_mode) {
         case GRAPHICS_MODE_AUTO:
         case GRAPHICS_MODE_HIGHEST_RESOLUTION:
@@ -267,6 +263,9 @@ static void set_gop_mode(struct efi_graphics_output_protocol *gop, enum graphics
     }
 
     if (new_mode == current_mode) {
+#ifdef DEBUG
+        print_modes_list(gop);
+#endif
         return;
     }
 
@@ -274,6 +273,11 @@ static void set_gop_mode(struct efi_graphics_output_protocol *gop, enum graphics
     if (status != EFI_SUCCESS) {
         efi_puts("ERROR: Failed to set requested graphics mode\n");
     }
+
+#ifdef DEBUG
+    print_modes_list(gop);
+#endif
+
 }
 
 

@@ -83,9 +83,13 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
         efi_exit(imghandle, EFI_INVALID_PARAMETER);
     }
 
+    // it was necessary to reset the console
+    // on real hardware, even though it makes
+    // qemu really slow
+    efi_console_reset();
+
 #ifdef DEBUG
     disable_watchdog_timer();
-    efi_console_reset();
     efi_console_clear_screen();
     print_uefi_info();
 #endif
@@ -100,12 +104,16 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
         efi_exit(imghandle, status);
     }
 
+#ifdef DEBUG
     efi_console_clear_screen();
+#endif
 
-    // courtesy of axel and osdev :) 
-    for (uint16_t x = 0; x < si.lfb_width; ++x) {
-        for (uint16_t y = 0; y < si.lfb_height; ++y) {
-            *((uint32_t*) (si.lfb_base + 4 * si.lfb_linelength * y + 4 * x)) = x * y;
+    for (uint16_t y = 0; y < si.lfb_height; ++y) {
+        // much quicker to access x axis in inner loop
+        for (uint16_t x = 0; x < si.lfb_width; ++x) {
+            uint32_t pixel = \
+                (0x91 << si.red_pos) | (0x3f << si.green_pos) | (0x92 << si.blue_pos);
+            *((uint32_t*) (si.lfb_base + 4 * si.lfb_linelength * y + 4 * x)) = pixel;
         }
     }
 
@@ -115,6 +123,21 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     efi_putd(si.lfb_height);
     efi_puts(":");
     efi_putd(si.lfb_depth);
+    efi_puts("\n");
+    efi_puts("R:");
+    efi_putd(si.red_size);
+    efi_puts("-");
+    efi_putd(si.red_pos);
+    efi_puts(" ");
+    efi_puts("G:");
+    efi_putd(si.green_size);
+    efi_puts("-");
+    efi_putd(si.green_pos);
+    efi_puts(" ");
+    efi_puts("B:");
+    efi_putd(si.blue_size);
+    efi_puts("-");
+    efi_putd(si.blue_pos);
     efi_puts("\n");
 
     // call ExitBootServices in future

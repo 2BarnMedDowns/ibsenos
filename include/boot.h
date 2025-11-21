@@ -7,6 +7,20 @@
 
 struct screen_info 
 {
+    uint16_t    lfb_width;      // linear framebuffer width
+    uint16_t    lfb_height;     // linear framebuffer height
+    uint64_t    lfb_base;       // base address of linear framebuffer
+    uint16_t    lfb_depth;
+    uint16_t    lfb_linelength; // pixels per scan line
+    uint16_t    lfb_size;
+    uint8_t     red_size;
+    uint8_t     red_pos;
+    uint8_t     green_size;
+    uint8_t     green_pos;
+    uint8_t     blue_size;
+    uint8_t     blue_pos;
+    uint8_t     reserved_size;
+    uint8_t     reserved_pos;
 
 } __packed;
 

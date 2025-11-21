@@ -55,6 +55,12 @@ static void __unused disable_watchdog_timer(void)
 
 static void __noreturn efi_exit(efi_handle_t handle, efi_status_t status)
 {
+#ifdef DEBUG
+    efi_puts("Exiting with status code ");
+    efi_put0h(status);
+    efi_puts("\n");
+    BS->stall(10 * 1000000);
+#endif
     BS->exit(handle, status, 0, NULL);
 
     for (;;) {
@@ -70,31 +76,42 @@ static void __noreturn efi_exit(efi_handle_t handle, efi_status_t status)
 efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struct efi_system_table *systab)
 {
     efi_status_t status;
-    ST = NULL;
+    ST = systab;
+    BS = (const struct efi_boot_services*) ST->boot_services;;
 
     if (systab->hdr.signature != EFI_SYSTEM_TABLE_SIGNATURE) {
         efi_exit(imghandle, EFI_INVALID_PARAMETER);
     }
 
-    ST = systab;
-    BS = (const struct efi_boot_services*) ST->boot_services;;
-
+#ifdef DEBUG
+    disable_watchdog_timer();
     efi_console_reset();
     efi_console_clear_screen();
-
-#ifdef DEBUG
     print_uefi_info();
-    disable_watchdog_timer();
 #endif
 
+    // FIXME: allocate boot_params using allocate_memory_pages so we can pass it on
     struct screen_info si;
+    memset(&si, 0, sizeof(si));
 
     status = efi_setup_gop(&si);
     if (status != EFI_SUCCESS) {
-        efi_puts("Failure\n");
+        efi_puts("ERROR: Unable to set up graphics\n");
+        efi_exit(imghandle, status);
+    }
+
+    efi_console_clear_screen();
+
+    // courtesy of axel and osdev :) 
+    for (uint16_t x = 0; x < si.lfb_width; ++x) {
+        for (uint16_t y = 0; y < si.lfb_height; ++y) {
+            *((uint32_t*) (si.lfb_base + 4 * si.lfb_linelength * y + 4 * x)) = x * y;
+        }
     }
 
     // call ExitBootServices in future
-    efi_puts("Bye\n");
-    for (;;) {}
+    efi_puts("Goodbye!\n");
+    for (;;) {
+        BS->stall(2 * 1000000);
+    }
 }

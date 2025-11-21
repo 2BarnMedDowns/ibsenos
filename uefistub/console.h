@@ -118,7 +118,7 @@ struct efi_graphics_output_mode_info
     uint32_t vertical_resolution;
     enum efi_graphics_pixel_format pixel_format;
     struct efi_pixel_bitmask pixel_information;
-    uint32_t pixel_per_scanline;
+    uint32_t pixels_per_scan_line;
 };
 
 struct efi_graphics_output_blt_pixel

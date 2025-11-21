@@ -237,6 +237,14 @@ static bool highest_res(const struct efi_graphics_output_mode_info *info,
 }
 
 
+static uint32_t choose_highest_res(struct efi_graphics_output_protocol *gop)
+{
+    struct match m = {};
+    choose_mode(gop, highest_res, &m);
+    return m.mode;
+}
+
+
 static void set_gop_mode(struct efi_graphics_output_protocol *gop)
 {
     const struct efi_graphics_output_protocol_mode *mode = gop->mode;
@@ -247,9 +255,7 @@ static void set_gop_mode(struct efi_graphics_output_protocol *gop)
     print_modes_list(gop);
 #endif
 
-    struct match m = {};
-    choose_mode(gop, highest_res, &m);
-    new_mode = m.mode;
+    new_mode = choose_highest_res(gop);
 
     if (new_mode == current_mode) {
         return;

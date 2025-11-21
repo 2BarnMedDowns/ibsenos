@@ -50,6 +50,7 @@ typedef void * efi_event_t;
 #define EFI_NOT_FOUND           (14 | (1ULL << 63))
 #define EFI_ACCESS_DENIED       (15 | (1ULL << 63))
 #define EFI_TIMEOUT             (18 | (1ULL << 63))
+#define EFI_NOT_STARTED         (19 | (1ULL << 63))
 #define EFI_ABORTED             (21 | (1ULL << 63))
 #define EFI_SECURITY_VIOLATION  (26 | (1ULL << 63))
 

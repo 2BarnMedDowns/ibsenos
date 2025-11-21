@@ -94,7 +94,7 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     struct screen_info si;
     memset(&si, 0, sizeof(si));
 
-    status = efi_setup_gop(&si);
+    status = efi_setup_gop(&si, GRAPHICS_MODE_HIGHEST_RESOLUTION);
     if (status != EFI_SUCCESS) {
         efi_puts("ERROR: Unable to set up graphics\n");
         efi_exit(imghandle, status);
@@ -108,6 +108,14 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
             *((uint32_t*) (si.lfb_base + 4 * si.lfb_linelength * y + 4 * x)) = x * y;
         }
     }
+
+    efi_puts("Resolution: ");
+    efi_putd(si.lfb_width);
+    efi_puts("x");
+    efi_putd(si.lfb_height);
+    efi_puts(":");
+    efi_putd(si.lfb_depth);
+    efi_puts("\n");
 
     // call ExitBootServices in future
     efi_puts("Goodbye!\n");

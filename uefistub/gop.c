@@ -245,7 +245,7 @@ static uint32_t choose_highest_res(struct efi_graphics_output_protocol *gop)
 }
 
 
-static void set_gop_mode(struct efi_graphics_output_protocol *gop)
+static void set_gop_mode(struct efi_graphics_output_protocol *gop, enum graphics_mode requested_mode)
 {
     const struct efi_graphics_output_protocol_mode *mode = gop->mode;
     uint32_t current_mode = mode->mode;
@@ -255,7 +255,16 @@ static void set_gop_mode(struct efi_graphics_output_protocol *gop)
     print_modes_list(gop);
 #endif
 
-    new_mode = choose_highest_res(gop);
+    switch (requested_mode) {
+        case GRAPHICS_MODE_AUTO:
+        case GRAPHICS_MODE_HIGHEST_RESOLUTION:
+            new_mode = choose_highest_res(gop);
+            break;
+
+        default:
+            efi_puts("ERROR: Unknown requested graphics mode\n");
+            return;
+    }
 
     if (new_mode == current_mode) {
         return;
@@ -263,12 +272,12 @@ static void set_gop_mode(struct efi_graphics_output_protocol *gop)
 
     efi_status_t status = gop->set_mode(gop, new_mode);
     if (status != EFI_SUCCESS) {
-        efi_puts("ERROR: Failed to set requested mode\n");
+        efi_puts("ERROR: Failed to set requested graphics mode\n");
     }
 }
 
 
-efi_status_t efi_setup_gop(struct screen_info *si)
+efi_status_t efi_setup_gop(struct screen_info *si, enum graphics_mode requested_mode)
 {
     efi_handle_t *handles = NULL;
     const struct efi_graphics_output_protocol_mode *mode = NULL;
@@ -292,7 +301,7 @@ efi_status_t efi_setup_gop(struct screen_info *si)
         return EFI_NOT_FOUND;
     }
 
-    set_gop_mode(gop);
+    set_gop_mode(gop, requested_mode);
 
     mode = gop->mode;
     info = mode->info;

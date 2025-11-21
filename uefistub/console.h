@@ -224,10 +224,17 @@ void efi_console_restore(void);
 efi_status_t efi_wait_for_key(uint32_t usecs, struct efi_input_key *key);
 
 
+enum graphics_mode
+{
+    GRAPHICS_MODE_AUTO = 0,
+    GRAPHICS_MODE_HIGHEST_RESOLUTION = 1,
+};
+
+
 /*
  * Setup the graphics output protocol.
  */
-efi_status_t efi_setup_gop(struct screen_info *si);
+efi_status_t efi_setup_gop(struct screen_info *si, enum graphics_mode requested_mode);
 
 
 #endif

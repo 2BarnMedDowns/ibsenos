@@ -54,7 +54,7 @@ static void __noreturn efi_exit(efi_handle_t handle, efi_status_t status)
 {
 #ifdef DEBUG
     efi_puts("Exiting with status code ");
-    efi_put0h(status);
+    efi_put0h(status, 16);
     efi_puts("\n");
     BS->stall(10 * 1000000);
 #endif
@@ -74,7 +74,8 @@ static efi_status_t efi_setup_pci(struct boot_params *params)
     efi_status_t status;
     uint64_t num_handles = 0;
 
-    status = BS->locate_handle_buffer(EFI_LOCATE_BY_PROTOCOL,
+    status = BS->locate_handle_buffer(
+            EFI_LOCATE_BY_PROTOCOL,
             &EFI_PCI_IO_PROTOCOL_GUID, 
             NULL,
             &num_handles, 
@@ -85,6 +86,88 @@ static efi_status_t efi_setup_pci(struct boot_params *params)
 
     for (uint64_t i = 0; i < num_handles; ++i) {
         efi_handle_t handle = handles[i];
+
+        struct efi_pci_io_protocol *pci = NULL;
+
+        status = BS->handle_protocol(
+                handle,
+                &EFI_PCI_IO_PROTOCOL_GUID,
+                (void**) &pci);
+        if (status != EFI_SUCCESS) {
+            continue;
+        }
+
+        uint64_t segment;
+        uint64_t bus;
+        uint64_t device;
+        uint64_t function;
+
+        status = pci->get_location(pci, &segment, &bus, &device, &function);
+        if (status != EFI_SUCCESS) {
+            efi_puts("ERROR: Unable to retrieve PCI bus information\n");
+            continue;
+        }
+
+        uint64_t class_revision;
+        status = pci->pci_read(pci, EFI_PCI_IO_WIDTH_UINT32,
+                               PCI_CLASS_REVISION, 1, &class_revision);
+        if (status != EFI_SUCCESS) {
+            efi_puts("ERROR: Unable to read PCI class from device configuration space\n");
+            continue;
+        }
+
+        uint16_t pci_class = class_revision >> 16;
+        efi_puts("PCI device ");
+        efi_put0h(segment, 4);
+        efi_puts(":");
+        efi_put0h(bus, 2);
+        efi_puts(":");
+        efi_put0h(device, 2);
+        efi_puts(".");
+        efi_putd(function);
+        efi_puts(" is ");
+
+        switch (pci_class) {
+            case 0x0600:
+                efi_puts("host bridge");
+                break;
+            case 0x0601:
+                efi_puts("ISA bridge");
+                break;
+            case 0x0680:
+                efi_puts("bridge");
+                break;
+            case 0x0100:
+                efi_puts("SCSI storage");
+                break;
+            case 0x0101:
+                efi_puts("IDE interface");
+                break;
+            case 0x0105:
+                efi_puts("ATA controller");
+                break;
+            case 0x0300:
+                efi_puts("VGA controller");
+                break;
+            case 0x0106:
+                efi_puts("SATA controller");
+                break;
+            case 0x0108:
+                efi_puts("NVMe controller");
+                break;
+            case 0x0109:
+                efi_puts("universal flash storage");
+                break;
+            case 0x0c03:
+                efi_puts("USB controller");
+                break;
+            default:
+                efi_puts("class 0x");
+                efi_put0h(pci_class, 4);
+                break;
+        }
+
+        efi_puts("\n");
     }
 
     efi_free_buffer(handles);

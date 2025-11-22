@@ -398,7 +398,7 @@ struct efi_boot_services
     // Open and Close Protocol Services
     efi_status_t (__efiapi *open_protocol)(efi_handle_t handle,
                                            const efi_guid_t *protocol,
-                                           void **interface,
+                                           const void **interface,
                                            efi_handle_t agent,
                                            efi_handle_t controller,
                                            uint32_t attributes);
@@ -420,7 +420,7 @@ struct efi_boot_services
                                                   efi_handle_t **handles); // must call BootServices.FreePool() when buffer is no longer required
     efi_status_t (__efiapi *locate_protocol)(const efi_guid_t *protocol,
                                              void *registration_key, // NULL means ignore
-                                             void **interface);
+                                             const void **interface);
     void*        InstallMultipleProtocolInterfaces;    // EFI 1.1+
     void*        UninstallMultipleProtocolInterfaces;   // EFI 1.1+*
 

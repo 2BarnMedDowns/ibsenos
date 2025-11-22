@@ -212,7 +212,7 @@ void efi_puth(uint64_t value);
  * Write an unsigned 64-bit integer as hexadecimal to console,
  * with leading zeros.
  */
-void efi_put0h(uint64_t value);
+void efi_put0h(uint64_t value, size_t digits);
 
 
 void efi_console_reset(void);

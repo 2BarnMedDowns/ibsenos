@@ -2,6 +2,7 @@
 #define __IBSENOS_UEFISTUB_PCI_H__
 
 #include <efi.h>
+#include <pcidefs.h>
 
 
 enum efi_pci_io_protocol_width 

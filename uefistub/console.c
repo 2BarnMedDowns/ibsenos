@@ -120,15 +120,20 @@ void efi_puth(uint64_t value)
 }
 
 
-void efi_put0h(uint64_t value)
+void efi_put0h(uint64_t value, size_t digits)
 {
     char buf[17];
-    size_t digits = u64tostr(value, buf, 16);
+    size_t n = u64tostr(value, buf, 16);
     strrev(buf);
-    memset(&buf[digits], '0', 15 - digits);
+    memset(&buf[n], '0', 15 - n);
     buf[16] = '\0';
     strrev(buf);
-    efi_puts(buf);
+
+    if (n > digits) {
+        digits = n;
+    }
+
+    efi_puts(&buf[15-digits]);
 }
 
 

@@ -60,7 +60,7 @@ void efi_puts(const char *str)
 {
     uint16_t buf[128];
     size_t pos = 0;
-    size_t lim = array_size(buf);
+    size_t lim = ARRAY_SIZE(buf);
 
     const uint8_t *s8 = (const uint8_t*) str;
     uint32_t c32;
@@ -167,7 +167,6 @@ void efi_console_reset(void)
 
     conout->set_mode(conout, mode);
 }
-
 
 
 void efi_console_clear_screen(void)

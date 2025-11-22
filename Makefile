@@ -105,7 +105,7 @@ $(eval $(call target,bootloader,BOOTX64.EFI, \
 
 
 clean: $(TARGETS:%=%-clean)
-	$(RM) $(BUILD_DIR)/$(PROJECT).iso $(BUILD_DIR)/$(PROJECT).img $(BUILD_DIR)/.build
+	$(RM) $(BUILD_DIR)/$(PROJECT).iso $(BUILD_DIR)/$(PROJECT).img $(BUILD_DIR)/nvme.img $(BUILD_DIR)/.build
 
 
 # Build a CDROM iso
@@ -114,6 +114,11 @@ iso: $(BUILD_DIR)/$(PROJECT).iso
 
 # Build a disk image
 image: $(BUILD_DIR)/$(PROJECT).img
+
+
+# Create a NVMe storage image
+$(BUILD_DIR)/nvme.img:
+	dd if=/dev/zero of=$@ bs=1M count=16
 
 
 # Create a CDROM ISO from the disk image
@@ -148,13 +153,17 @@ $(BUILD_DIR)/.build: $(if $(call is_build,$(BUILD)),,.FORCE)
 .PHONY: qemu qemu-nographic qemu-cdrom qemu-usb
 
 # Launch Qemu instance but using the ISO CDROM image instead of the disk
-qemu-cdrom: $(BUILD_DIR)/$(PROJECT).iso
-	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -cdrom $<
+qemu-cdrom: $(BUILD_DIR)/$(PROJECT).iso $(BUILD_DIR)/nvme.img
+	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -cdrom $< \
+		-drive file=$(BUILD_DIR)/nvme.img,if=none,format=raw,id=nvme0 \
+		-device nvme,drive=nvme0,serial=emulated-nvme-drive
 
 
 # Launch Qemu instance using USB stick image
-qemu-usb: $(BUILD_DIR)/$(PROJECT).img
+qemu-usb: $(BUILD_DIR)/$(PROJECT).img $(BUILD_DIR)/nvme.img
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) \
+		-drive file=$(BUILD_DIR)/nvme.img,if=none,format=raw,id=nvme0 \
+		-device nvme,drive=nvme0,serial=emulated-nvme-drive \
 		-drive if=none,format=raw,file=$<,id=stick \
 		-device nec-usb-xhci,id=xhci \
 		-device usb-storage,bus=xhci.0,drive=stick,removable=on
@@ -162,13 +171,17 @@ qemu-usb: $(BUILD_DIR)/$(PROJECT).img
 
 # Short-hand for launching a Qemu instance without graphics (terminal)
 # Ctrl+A+X for exit
-qemu-nographic: $(BUILD_DIR)/$(PROJECT).img
+qemu-nographic: $(BUILD_DIR)/$(PROJECT).img $(BUILD_DIR)/nvme.img
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) -nographic \
+		-drive file=$(BUILD_DIR)/nvme.img,if=none,format=raw,id=nvme0 \
+		-device nvme,drive=nvme0,serial=emulated-nvme-drive \
 		-drive format=raw,file=$<
 
 
 # Short-hand for launching a Qemu instance with graphics
 # Ctrl+Alt+G for releasing mouse grab
-qemu: $(BUILD_DIR)/$(PROJECT).img
+qemu: $(BUILD_DIR)/$(PROJECT).img $(BUILD_DIR)/nvme.img
 	qemu-system-$(ARCH_TARGET) -net none -bios $(OVMF_PATH) \
+		-drive file=$(BUILD_DIR)/nvme.img,if=none,format=raw,id=nvme0 \
+		-device nvme,drive=nvme0,serial=emulated-nvme-drive \
 		-drive format=raw,file=$<

@@ -74,6 +74,9 @@
 #define noinline __attribute__((noinline))
 
 
+#define __cleanup(func) __attribute__((__cleanup__(func)))
+
+
 #define fallthrough __attribute__((__fallthrough__))
 
 

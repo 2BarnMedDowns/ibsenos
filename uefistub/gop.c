@@ -310,10 +310,13 @@ efi_status_t efi_setup_gop(struct screen_info *si, enum graphics_mode requested_
     mode = gop->mode;
     info = mode->info;
 
-    si->lfb_width = info->horizontal_resolution;
-    si->lfb_height = info->vertical_resolution;
     si->lfb_base = mode->frame_buffer_base;
 
+    // Screen width and height
+    si->lfb_width = info->horizontal_resolution;
+    si->lfb_height = info->vertical_resolution;
+
+    // Extract pixel information
     enum efi_graphics_pixel_format pf = info->pixel_format;
     struct efi_pixel_bitmask pi = info->pixel_information;
 
@@ -322,14 +325,17 @@ efi_status_t efi_setup_gop(struct screen_info *si, enum graphics_mode requested_
         find_bits(pi.green_mask, &si->green_pos, &si->green_size);
         find_bits(pi.blue_mask, &si->blue_pos, &si->blue_size);
         find_bits(pi.reserved_mask, &si->reserved_pos, &si->reserved_size);
+
         si->lfb_depth = si->red_size + si->green_size +
             si->blue_size + si->reserved_size;
+
         si->lfb_linelength = (info->pixels_per_scan_line * si->lfb_depth) / 8;
+
     } else {
         if (pf == PIXEL_RGB_RESERVED_8BIT_PER_COLOR) {
             si->red_pos = 0;
             si->blue_pos = 16;
-        } else {
+        } else { // PIXEL_BGR_RESERVED_8BIT_PER_COLOR
             si->blue_pos = 0;
             si->red_pos = 16;
         }
@@ -341,6 +347,7 @@ efi_status_t efi_setup_gop(struct screen_info *si, enum graphics_mode requested_
         si->lfb_linelength = info->pixels_per_scan_line;
     }
 
+    // Total size of framebuffer
     si->lfb_size = si->lfb_linelength * si->lfb_height;
 
     efi_free_buffer(handles);

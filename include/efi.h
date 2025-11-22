@@ -55,17 +55,6 @@ typedef void * efi_event_t;
 #define EFI_SECURITY_VIOLATION  (26 | (1ULL << 63))
 
 
-typedef struct __aligned(__alignof__(uint32_t)) {
-    uint8_t bytes[16];
-} efi_guid_t;
-
-
-#define EFI_GUID(a, b, c, d...) ((efi_guid_t){ { \
-        (a) & 0xff, ((a) >> 8) & 0xff, ((a) >> 16) & 0xff, ((a) >> 24) & 0xff, \
-        (b) & 0xff, ((b) >> 8) & 0xff, \
-        (c) & 0xff, ((c) >> 8) & 0xff, d } })
-
-
 /*
  * Common EFI table header.
  * Precedes all the standard EFI table types.
@@ -109,14 +98,39 @@ struct efi_system_table
 #define EFI_SYSTEM_TABLE_SIGNATURE ((uint64_t) 0x5453595320494249ULL)
 
 
+/*
+ * The UEFI specification defines EFI_GUID as a struct
+ * with an uint32, two uint16 and eight uint8.
+ * The specification also says that it should be
+ * aligned on a 64-bit boundary.
+ */
+typedef struct __aligned(64) {
+    uint8_t bytes[16];
+} efi_guid_t;
+
+
+#define EFI_GUID(a, b, c, d...) ((efi_guid_t){ { \
+        (a) & 0xff, ((a) >> 8) & 0xff, ((a) >> 16) & 0xff, ((a) >> 24) & 0xff, \
+        (b) & 0xff, ((b) >> 8) & 0xff, \
+        (c) & 0xff, ((c) >> 8) & 0xff, d } })
+
+
+
 /* 
  * EFI configuration table and GUID definitions
+ * 
+ * The UEFI specification declares GUIDs as follows:
+ * #define EFI_SOME_PROTOCOL_GUID \
+ *   (0x01234567,0x0123,0x0123. \
+ *     {0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef})
  */
 #define NULL_GUID                               EFI_GUID(0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 #define EFI_CONSOLE_OUT_DEVICE_GUID             EFI_GUID(0xd3b36f2c, 0xd551, 0x11d4, 0x9a, 0x46, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d)
 #define EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID    EFI_GUID(0x387477c2, 0x69c7, 0x11d2, 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b)
 #define EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID     EFI_GUID(0x387477c1, 0x69c7, 0x11d2, 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b)
 #define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID       EFI_GUID(0x9042a9de, 0x23dc, 0x4a38, 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a)
+#define EFI_PCI_IO_PROTOCOL_GUID                EFI_GUID(0x4cf5b200, 0x68b8, 0x4ca5, 0x9e, 0xec, 0xb2, 0x3e, 0x3f, 0x50, 0x02, 0x9a)
+
 
 
 struct efi_config_table

@@ -245,6 +245,9 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     efi_puts("-");
     efi_putd(si->blue_pos);
     efi_puts("\n");
+    efi_puts("Frame buffer address: 0x");
+    efi_put0h(si->lfb_base, 8);
+    efi_puts("\n");
 
     efi_setup_pci(&boot_params);
 

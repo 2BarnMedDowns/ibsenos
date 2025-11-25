@@ -261,7 +261,7 @@ static efi_status_t print_device_info(struct efi_pci_io_protocol *pci)
         bool prefetchable = false;
 
         if (!!(base_addr & PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
-            efi_pci_cfg_write32(pci, offset, 0xffffffff);
+            efi_pci_cfg_write32(pci, offset, ~0);
             size = efi_pci_cfg_read32(pci, offset);
             efi_pci_cfg_write32(pci, offset, base_addr);
             full_addr = base_addr & PCI_BASE_ADDRESS_IO_MASK;
@@ -269,7 +269,7 @@ static efi_status_t print_device_info(struct efi_pci_io_protocol *pci)
         } else {
             memory = true;
             
-            efi_pci_cfg_write32(pci, offset, 0xffffffff);
+            efi_pci_cfg_write32(pci, offset, ~0);
             size = efi_pci_cfg_read32(pci, offset);
             prefetchable = !!(size & PCI_BASE_ADDRESS_MEM_PREFETCH);
             is_64bit = ((size & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_64);
@@ -408,7 +408,7 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
         for (uint16_t x = 0; x < si->lfb_width; ++x) {
             uint32_t pixel = \
                 (0x91 << si->red_pos) | (0x3f << si->green_pos) | (0x92 << si->blue_pos);
-            *((uint32_t*) (si->lfb_base + 4 * si->lfb_linelength * y + 4 * x)) = pixel;
+            *((uint32_t*) (si->lfb_base + si->lfb_linelength * y + 4 * x)) = pixel;
         }
     }
 
@@ -437,6 +437,9 @@ efi_status_t __efiapi __noreturn uefistub_pe_entry(efi_handle_t imghandle, struc
     efi_puts("\n");
     efi_puts("Frame buffer address: 0x");
     efi_put0h(si->lfb_base, 8);
+    efi_puts("\n");
+    efi_puts("Frame buffer size: ");
+    print_size(si->lfb_size);
     efi_puts("\n");
 
     efi_setup_pci(&boot_params);

@@ -344,7 +344,7 @@ efi_status_t efi_setup_gop(struct screen_info *si, enum graphics_mode requested_
         si->reserved_pos = 24;
         si->red_size = si->green_size = si->blue_size = si->reserved_size = 8;
         si->lfb_depth = 32;
-        si->lfb_linelength = info->pixels_per_scan_line;
+        si->lfb_linelength = info->pixels_per_scan_line * 4;
     }
 
     // Total size of framebuffer

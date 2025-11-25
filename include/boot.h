@@ -15,7 +15,7 @@ struct screen_info
     uint64_t    lfb_base;       // base address of linear framebuffer
     uint16_t    lfb_depth;      // color depth (r + g + b + reserved)
     uint16_t    lfb_linelength; // pixels per scan line
-    uint16_t    lfb_size;       // total size (scan line length * height)
+    uint32_t    lfb_size;       // total size (scan line length * height)
     uint8_t     red_size;       // number of bits used red
     uint8_t     red_pos;        // position of lowest bit in red
     uint8_t     green_size;     // number of bits used for green

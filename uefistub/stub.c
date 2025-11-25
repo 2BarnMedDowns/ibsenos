@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include "pci.h"
+#include <align.h>
 
 
 static void __unused print_uefi_info(void)
@@ -68,6 +69,265 @@ static void __noreturn efi_exit(efi_handle_t handle, efi_status_t status)
 }
 
 
+static void efi_pci_cfg_write32(const struct efi_pci_io_protocol *pci, uint16_t offset, uint32_t value)
+{
+    uint64_t write_value = value;
+    pci->pci_write(pci, EFI_PCI_IO_WIDTH_UINT32, offset, 1, &write_value);
+}
+
+
+static uint32_t efi_pci_cfg_read32(const struct efi_pci_io_protocol *pci, uint16_t offset)
+{
+    uint64_t read_value = ~0;
+    pci->pci_read(pci, EFI_PCI_IO_WIDTH_UINT32, offset, 1, &read_value);
+    return read_value;
+}
+
+
+//static bool efi_pci_cfg_read_base(const struct efi_pci_io_protocol *pci, uint8_t bar, 
+//                                  uint64_t *base_addr, uint64_t *size)
+//{
+//    uint32_t orig32 = 0;
+//    uint64_t orig64;
+//    uint32_t s32 = 0;
+//    uint64_t s64;
+//    uint32_t mask32 = ~0;
+//    uint64_t mask64;
+//
+//    orig32 = efi_pci_cfg_read32(pci, PCI_BASE_ADDRESS_0 + 4 * bar);
+//    efi_pci_cfg_write32(pci, PCI_BASE_ADDRESS_0 + 4 * bar, orig32 | mask32);
+//    s = efi_pci_cfg_read32(pci, PCI_BASE_ADDRESS_0 + 4 * bar);
+//    efi_pci_cfg_write32(pci, PCI_BASE_ADDRESS_0 + 4 * bar, orig32);
+//
+//    if (!!(orig & PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
+//        orig64 = orig32 & PCI_BASE_ADDRESS_IO_MASK;
+//        s64 = s32 & PCI_BASE_ADDRESS_IO_MASK;
+//        mask64 = PCI_BASE_ADDRESS_ADDRESS_IO_MASK;
+//    } else {
+//        orig64 = orig32 & PCI_BASE_ADDRESS_MEM_MASK;
+//        s64 = s32 & PCI_BASE_ADDRESS_MEM_MASK;
+//        mask64 = (uint32_t) PCI_BASE_ADDRESS_MEM_MASK;
+//
+//        if ((orig32 & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_64) {
+//            orig32 = efi_pci_cfg_read(pci, PCI_BASE_ADDRESS_0 + 4 * bar + 4);
+//        }
+//}
+
+
+static void print_size(uint64_t size)
+{
+    if (!ALIGNED(size, 1024)) {
+        efi_putd(size);
+        efi_puts("B");
+        return;
+    }
+
+    char *suffixes[] = {"B", "kB", "MB", "GB", "TB"};
+
+    int i = 0;
+    while (size > 1024) {
+        size >>= 10;
+        ++i;
+        if (i == 4) {
+            break;
+        }
+    }
+    efi_putd(size);
+    efi_puts(suffixes[i]);
+}
+
+
+static efi_status_t print_device_info(struct efi_pci_io_protocol *pci)
+{
+    efi_status_t status;
+
+    uint64_t segment = 0;
+    uint64_t bus = 0;
+    uint64_t device = 0;
+    uint64_t function = 0;
+
+    status = pci->get_location(pci, &segment, &bus, &device, &function);
+    if (status != EFI_SUCCESS) {
+        efi_puts("ERROR: Unable to retrieve PCI bus information\n");
+        return status;
+    }
+
+    uint64_t htype = 0;
+    status = pci->pci_read(pci, EFI_PCI_IO_WIDTH_UINT8, PCI_HEADER_TYPE, 1, &htype);
+    if (status != EFI_SUCCESS) {
+        return status;
+    }
+
+    uint64_t command = 0;
+    status = pci->pci_read(pci, EFI_PCI_IO_WIDTH_UINT16, PCI_COMMAND, 1, &command);
+    if (status != EFI_SUCCESS) {
+        return status;
+    }
+
+    uint64_t class_revision = 0;
+    status = pci->pci_read(pci, EFI_PCI_IO_WIDTH_UINT32,
+            PCI_CLASS_REVISION, 1, &class_revision);
+    if (status != EFI_SUCCESS) {
+        efi_puts("ERROR: Unable to read PCI class from device configuration space\n");
+        return EFI_INVALID_PARAMETER;
+    }
+
+    uint16_t pci_class = class_revision >> 16;
+    efi_puts("Device ");
+    efi_put0h(segment, 4);
+    efi_puts(":");
+    efi_put0h(bus, 2);
+    efi_puts(":");
+    efi_put0h(device, 2);
+    efi_puts(".");
+    efi_putd(function);
+    efi_puts(" is ");
+
+    switch (pci_class) {
+        case 0x0600:
+            efi_puts("host bridge");
+            break;
+        case 0x0601:
+            efi_puts("ISA bridge");
+            break;
+        case 0x0680:
+            efi_puts("bridge");
+            break;
+        case 0x0100:
+            efi_puts("SCSI storage");
+            break;
+        case 0x0101:
+            efi_puts("IDE interface");
+            break;
+        case 0x0105:
+            efi_puts("ATA controller");
+            break;
+        case 0x0300:
+            efi_puts("VGA controller");
+            break;
+        case 0x0106:
+            efi_puts("SATA controller");
+            break;
+        case 0x0108:
+            efi_puts("NVMe controller");
+            break;
+        case 0x0109:
+            efi_puts("universal flash storage");
+            break;
+        case 0x0c03:
+            efi_puts("USB controller");
+            break;
+        default:
+            efi_puts("class 0x");
+            efi_put0h(pci_class, 4);
+            break;
+    }
+
+    efi_puts("\n");
+
+    if ((htype & PCI_HEADER_TYPE_MASK) != PCI_HEADER_TYPE_NORMAL) {
+        return EFI_SUCCESS;
+    }
+
+    for (uint8_t idx = 0; idx < 6; ++idx) {
+        uint64_t newcommand = command & ~(0x7);
+        uint64_t offset = PCI_BASE_ADDRESS_0 + 4 * idx;
+        status = pci->pci_write(pci,
+                EFI_PCI_IO_WIDTH_UINT16,
+                PCI_COMMAND,
+                1, &newcommand);
+        if (status != EFI_SUCCESS) {
+            efi_puts("ERROR: Failed to disable\n");
+            continue;
+        }
+
+        uint8_t bar = idx;
+        uint32_t base_addr = efi_pci_cfg_read32(pci, offset);
+
+        if (base_addr == 0) {
+            pci->pci_write(
+                    pci,
+                    EFI_PCI_IO_WIDTH_UINT16,
+                    PCI_COMMAND,
+                    1, &command);
+            continue;
+        }
+
+        uint32_t size = 0;
+        uint64_t full_addr = 0;
+        uint64_t full_size = 0;
+        bool is_64bit = false;
+        bool memory = false;
+        bool prefetchable = false;
+
+        if (!!(base_addr & PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
+            efi_pci_cfg_write32(pci, offset, 0xffffffff);
+            size = efi_pci_cfg_read32(pci, offset);
+            efi_pci_cfg_write32(pci, offset, base_addr);
+            full_addr = base_addr & PCI_BASE_ADDRESS_IO_MASK;
+            full_size = ~(size & PCI_BASE_ADDRESS_IO_MASK) + 1;
+        } else {
+            memory = true;
+            
+            efi_pci_cfg_write32(pci, offset, 0xffffffff);
+            size = efi_pci_cfg_read32(pci, offset);
+            prefetchable = !!(size & PCI_BASE_ADDRESS_MEM_PREFETCH);
+            is_64bit = ((size & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_64);
+            efi_pci_cfg_write32(pci, offset, base_addr);
+            full_addr = base_addr & PCI_BASE_ADDRESS_MEM_MASK;
+            full_size = ~(size & PCI_BASE_ADDRESS_MEM_MASK);
+
+            if (is_64bit) {
+                base_addr = efi_pci_cfg_read32(pci, offset + 4);
+                efi_pci_cfg_write32(pci, offset + 4, ~0);
+                size = efi_pci_cfg_read32(pci, offset + 4);
+                efi_pci_cfg_write32(pci, offset + 4, base_addr);
+                full_addr |= ((uint64_t) base_addr) << 32;
+                size = ~size;
+                full_size |= ((uint64_t) size) << 32;
+                idx++;
+            } 
+
+            if (full_size != 0) {
+                full_size += 1;
+            }
+        }
+
+        // need to reenable responses before printing
+        // this took a looong time to debug
+        pci->pci_write(
+                pci,
+                EFI_PCI_IO_WIDTH_UINT16,
+                PCI_COMMAND,
+                1, &command);
+
+        if (full_size > 0) {
+            efi_puts("    BAR");
+            efi_putd(bar);
+            efi_puts(": ");
+            efi_puts(memory ? "Memory" : "I/O ports");
+            efi_puts(" at ");
+            efi_put0h(full_addr, 16);
+            efi_puts(" ");
+            if (memory) {
+                efi_puts("(");
+                efi_puts(is_64bit ? "64-bit" : "32-bit");
+                if (prefetchable) {
+                    efi_puts(", prefetchable");
+                }
+                efi_puts(")");
+            }
+            efi_puts(" [size ");
+            print_size(full_size);
+            efi_puts("]");
+            efi_puts("\n");
+        }
+    }
+
+    return EFI_SUCCESS;
+}
+
+
 static efi_status_t efi_setup_pci(struct boot_params *params)
 {
     efi_handle_t *handles = NULL;
@@ -97,77 +357,7 @@ static efi_status_t efi_setup_pci(struct boot_params *params)
             continue;
         }
 
-        uint64_t segment;
-        uint64_t bus;
-        uint64_t device;
-        uint64_t function;
-
-        status = pci->get_location(pci, &segment, &bus, &device, &function);
-        if (status != EFI_SUCCESS) {
-            efi_puts("ERROR: Unable to retrieve PCI bus information\n");
-            continue;
-        }
-
-        uint64_t class_revision;
-        status = pci->pci_read(pci, EFI_PCI_IO_WIDTH_UINT32,
-                               PCI_CLASS_REVISION, 1, &class_revision);
-        if (status != EFI_SUCCESS) {
-            efi_puts("ERROR: Unable to read PCI class from device configuration space\n");
-            continue;
-        }
-
-        uint16_t pci_class = class_revision >> 16;
-        efi_puts("PCI device ");
-        efi_put0h(segment, 4);
-        efi_puts(":");
-        efi_put0h(bus, 2);
-        efi_puts(":");
-        efi_put0h(device, 2);
-        efi_puts(".");
-        efi_putd(function);
-        efi_puts(" is ");
-
-        switch (pci_class) {
-            case 0x0600:
-                efi_puts("host bridge");
-                break;
-            case 0x0601:
-                efi_puts("ISA bridge");
-                break;
-            case 0x0680:
-                efi_puts("bridge");
-                break;
-            case 0x0100:
-                efi_puts("SCSI storage");
-                break;
-            case 0x0101:
-                efi_puts("IDE interface");
-                break;
-            case 0x0105:
-                efi_puts("ATA controller");
-                break;
-            case 0x0300:
-                efi_puts("VGA controller");
-                break;
-            case 0x0106:
-                efi_puts("SATA controller");
-                break;
-            case 0x0108:
-                efi_puts("NVMe controller");
-                break;
-            case 0x0109:
-                efi_puts("universal flash storage");
-                break;
-            case 0x0c03:
-                efi_puts("USB controller");
-                break;
-            default:
-                efi_puts("class 0x");
-                efi_put0h(pci_class, 4);
-                break;
-        }
-
-        efi_puts("\n");
+        print_device_info(pci);
     }
 
     efi_free_buffer(handles);

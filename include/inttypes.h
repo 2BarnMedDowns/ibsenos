@@ -46,14 +46,14 @@ _Static_assert(sizeof(uint16_t) == 2, "uint16_t must be 2 bytes");
 #define UINT16_MAX 65535
 
 
-typedef signed long int int32_t;
+typedef signed int int32_t;
 _Static_assert(sizeof(int32_t) == 4, "int32_t must be 4 bytes");
 
 #define INT32_MAX 2147483647L
 #define INT32_MIN (-INT32_MAX-1L)
 
 
-typedef unsigned long int uint32_t;
+typedef unsigned int uint32_t;
 _Static_assert(sizeof(uint32_t) == 4, "uint32_t must be 4 bytes");
 
 #define UINT32_MAX 4294967295L
